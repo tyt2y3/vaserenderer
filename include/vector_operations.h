@@ -1,8 +1,7 @@
-#ifndef VECTOR_OPERATIONS
-#define VECTOR_OPERATIONS
+#ifndef VECTOR_OPERATIONS_H
+#define VECTOR_OPERATIONS_H
 
 #include <math.h>
-#include "vase_renderer_draft1_2.h"
 
 class Point : public Vec2
 {
@@ -83,13 +82,14 @@ public:
 		x = -x;
 		y = -y;
 	}
-	void normalize()
+	double normalize()
 	{
 		double L = length();
 		if ( L > min_alw)
 		{
 			x /= L; y /= L;
 		}
+		return L;
 	}
 	void perpen() //perpendicular: anti-clockwise 90 degrees
 	{
@@ -212,7 +212,8 @@ public:
 }; //end of class Point
 
 /* after all,
-sizeof(Vec2)=16  sizeof(Point)=16
+ * sizeof(Vec2)=16  sizeof(Point)=16
+ * Point is not heavier, just more powerful :)
 */
 
 #endif

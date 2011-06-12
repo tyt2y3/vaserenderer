@@ -4,7 +4,7 @@
 #include <FL/Fl_Window.H>
 #include <FL/Fl_Gl_Window.H>
 
-#include "vase_renderer_draft1_2.h"
+#include "../include/vase_renderer_draft1_2.h"
 
 class Gl_Window : public Fl_Gl_Window
 {

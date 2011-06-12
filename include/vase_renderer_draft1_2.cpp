@@ -1,5 +1,10 @@
+#ifndef VASE_RENDERER_DRAFT1_2_CPP
+#define VASE_RENDERER_DRAFT1_2_CPP
+
 #include "vase_renderer_draft1_2.h"
+
 #include "vector_operations.h"
+#include "vertex_array_holder.h"
 
 #include <math.h>
 
@@ -51,6 +56,19 @@ static void determine_t_r ( double w, double& t, double& R)
 		double ff=w-6.0;
 		t=2.5+ff*0.50; R=1.08;
 	}
+	
+	//PPI correction
+	double PPI_correction = vaserend_standard_PPI / vaserend_actual_PPI;
+	const double up_bound = 1.6; //max value of w to receive correction
+	const double start_falloff = 1.0;
+	if ( w>0.0 && w<up_bound)
+	{	//here we gracefully apply the correction
+		// so that the effect of correction diminishes starting from w=start_falloff
+		//   and completely disappears when w=up_bound
+		double correction = 1.0 + (PPI_correction-1.0)*(up_bound-w)/(up_bound-start_falloff);
+		t *= PPI_correction;
+		R *= PPI_correction;
+	}
 }
 static void make_T_R_C( const Point& P1, const Point& P2, Point* T, Point* R, Point* C,
 				double w, const polyline_opt& opt,
@@ -70,11 +88,7 @@ static void make_T_R_C( const Point& P1, const Point& P2, Point* T, Point* R, Po
 	
 	//calculate T,R,C
 	DP.normalize();
-	if (C) {
-		*C = DP;
-		if ( opt.feather && !opt.no_feather_at_cap)
-			(*C) *= opt.feathering;
-	}
+	if (C) *C = DP;
 	DP.perpen();
 	if (T) *T = DP*t;
 	if (R) *R = DP*r;
@@ -93,45 +107,11 @@ static Point plus_minus( const Point& a, const Point& b, bool plus)
 	if (plus) return a+b;
 	else return a-b;
 }
-
-class vertex_array_holder
+static Point plus_minus( const Point& a, bool plus)
 {
-public:
-	const static int MAX_VERT=128;
-	int count; //counter
-	float vert[MAX_VERT*2]; //because it holds 2d vectors
-	float color[MAX_VERT*4]; //RGBA
-	
-	vertex_array_holder()
-	{
-		count = 0;
-	}
-	
-	void push( const Point& P, const Color& cc, bool transparent=false)
-	{
-		int& i = count;
-		
-		vert[i*2]  = P.x;
-		vert[i*2+1]= P.y;
-		
-		color[i*4]  = cc.r;
-		color[i*4+1]= cc.g;
-		color[i*4+2]= cc.b;
-		if ( transparent==true)
-			color[i*4+3]= 0.0f;
-		else
-			color[i*4+3]= cc.a;
-		
-		i++;
-	}
-	
-	void draw() //the only place to call gl functions
-	{
-		glVertexPointer(2, GL_FLOAT, 0, vert);
-		glColorPointer (4, GL_FLOAT, 0, color);
-		glDrawArrays (GL_TRIANGLE_STRIP, 0, count);
-	}
-};
+	if (plus) return a;
+	else return -a;
+}
 
 struct _st_polyline
 {
@@ -140,25 +120,93 @@ struct _st_polyline
 	Point vP; //vector to intersection point
 	Point vR; //fading vector at sharp end
 	
-	//only when djoint==LJ_bevel:
+	//for djoint==LJ_bevel
 	Point bR; //out stepping vector, same direction as cap
 	Point T1,R1; //alternate vectors, same direction as T21
+	
+	//for djoint==LJ_round
+	float t,r;
 	
 	//all vectors except bR
 	//  must point to the same side of the polyline
 	
 	char djoint; //determined joint
-	#define LJ_end 3// used privately by polyline
 			// e.g. originally a joint is LJ_miter. but it is smaller than critical angle,
 			//   should then set djoint to LJ_bevel
+	#define LJ_end 101//used privately by polyline
+	
 	bool bevel_at_positive; //used only when djoint==LJ_bevel
 };
 
+void inner_arc_strip( vertex_array_holder& hold, const Point& P, const Color& C,
+		float dangle, float angle1, float angle2,
+		float r, float r2, bool ignor_ends=false)
+{
+	if ( angle1>angle2)
+	{
+		float t=angle1;
+		angle1=angle2;
+		angle2=t;
+	}
+	if ( angle2-angle1>M_PI)
+	{
+		angle2=angle2-2*M_PI;
+		float t=angle1;
+		angle1=angle2;
+		angle2=t;
+	}
+
+	if ( !ignor_ends)
+	{
+		for ( float a=angle1; ; a+=dangle)
+		{
+			if ( a>angle2)
+				a=angle2;
+			
+			float x=cos(a);
+			float y=sin(a);
+			hold.push( Point(P.x+x*r,P.y-y*r), C);
+			hold.push( Point(P.x+x*r2,P.y-y*r2), C);
+			
+			if ( a>=angle2)
+				break;
+		}
+	}
+	else
+	{
+		for ( float a=angle1+dangle; a<angle2; a+=dangle)
+		{
+			float x=cos(a);
+			float y=sin(a);
+			hold.push( Point(P.x+x*r,P.y-y*r), C);
+			hold.push( Point(P.x+x*r2,P.y-y*r2), C);
+		}
+	}
+}
+void vectors_to_arc( vertex_array_holder& hold, const Point& P, const Color& C,
+		Point A, Point B, float den, float r, float r2, bool ignor_ends=false)
+{
+	A *= 1/r;
+	B *= 1/r;
+	float angle1 = acos(A.x);
+	float angle2 = acos(B.x);
+	if ( A.y>0){ angle1=2*M_PI-angle1;}
+	if ( B.y>0){ angle2=2*M_PI-angle2;}
+
+	inner_arc_strip( hold, P, C, den/r,angle1,angle2, r,r2, ignor_ends);
+}
+
 static void polyline_late( Vec2* P, Color* C, _st_polyline* SL, int size_of_P, Point cap1, Point cap2)
 {
-	vertex_array_holder core; 
+	vertex_array_holder core;
 	vertex_array_holder fade[2];
 	vertex_array_holder cap[2];
+	
+	core.set_gl_draw_mode(GL_TRIANGLE_STRIP);
+	fade[0].set_gl_draw_mode(GL_TRIANGLE_STRIP);
+	fade[1].set_gl_draw_mode(GL_TRIANGLE_STRIP);
+	cap[0].set_gl_draw_mode(GL_TRIANGLE_STRIP);
+	cap[1].set_gl_draw_mode(GL_TRIANGLE_STRIP);
 	
 	//memory optimization for CPU
 	//  the loops here can be performed inside the big loop in polyline()
@@ -196,13 +244,34 @@ static void polyline_late( Vec2* P, Color* C, _st_polyline* SL, int size_of_P, P
 					K = !K;
 				}
 			} break;
+			
+			case LJ_round:
+			{
+				bool Q = SL[i].bevel_at_positive;
+				//preceding points
+				if (Q) {
+					core.push( plus_minus(P[i],SL[i].vP, !Q), C[i]);
+					core.push( plus_minus(P[i],SL[i].T1,  Q), C[i]);
+					core.push( plus_minus(P[i],SL[i].vP, !Q), C[i]);//sorry for degenerated triangle
+				} else {
+					core.push( plus_minus(P[i],SL[i].T1,  Q), C[i]);
+					core.push( plus_minus(P[i],SL[i].vP, !Q), C[i]);
+					K = !K;
+				}
+				
+				//circular fan
+				float den=10.0f;
+				vectors_to_arc( core, P[i], C[i],
+				plus_minus(SL[i].T1, Q), plus_minus(SL[i].T, Q),
+				den, SL[i].t, 0.0f, true);
+				
+				//succeeding point
+				core.push( plus_minus(P[i],SL[i].T,   Q), C[i]);
+			} break;
 		}
-	}
-	core.draw();
-	
-	for ( int Q=0; Q<=1; Q++)
-	{	//inner and outer fade
-		for ( int i=0; i<size_of_P; i++)
+		
+		//inner and outer fade
+		/* for ( int Q=0; Q<=1; Q++)
 		{
 			switch (SL[i].djoint)
 			{
@@ -229,9 +298,12 @@ static void polyline_late( Vec2* P, Color* C, _st_polyline* SL, int size_of_P, P
 					fade[Q].push( plus_minus(P[i],SL[i].vP+SL[i].vR, Q), C[i],true);
 				}
 				break;
+				
+				case LJ_round:
+				{
+				} break;
 			}
-		}
-		fade[Q].draw();
+		} 	//*/
 	}
 	
 	for ( int i=0,k=0; k<=1; i=size_of_P-1, k++)
@@ -246,8 +318,16 @@ static void polyline_late( Vec2* P, Color* C, _st_polyline* SL, int size_of_P, P
 			cap[k].push( Point(P[i])-SL[i].T-cur_cap, C[i]);
 			cap[k].push( Point(P[i])-SL[i].T-SL[i].R-cur_cap, C[i],true);
 		}
-		cap[k].draw();
 	}
+	
+	//actually this is not the only place where .draw() occurs
+	// ,when a vertex_array_holder's internal array is full
+	// ,it will draw and flush
+	core   .draw();
+	fade[0].draw();
+	fade[1].draw();
+	cap[0] .draw();
+	cap[1] .draw();
 }
 
 void polyline( Vec2* P, Color* C, double* weight, int size_of_P, polyline_opt* options)
@@ -258,7 +338,11 @@ void polyline( Vec2* P, Color* C, double* weight, int size_of_P, polyline_opt* o
 	if ( options)
 		opt = (*options);
 	
-	//const double critical_angle=11.6538; //degree
+	//const double critical_angle=11.6538;
+	/*critical angle in degrees where a miter is force into bevel
+	 * it is _similar_ to cairo_set_miter_limit ()
+	 * but cairo works with ratio while we work with included angle*/
+	
 	const double cos_cri_angle=0.979386; //cos(critical_angle)
 	
 	Point T1,T2,T21,T31;			//these are for calculations in early stage
@@ -285,7 +369,9 @@ void polyline( Vec2* P, Color* C, double* weight, int size_of_P, polyline_opt* o
 					Point::anchor_outward(R2, P[i+1],P[i+2]);
 						T2.follow_signs(R2);
 					cap1=bR;
-					cap1.opposite();
+					cap1.opposite(); if ( opt.feather && !opt.no_feather_at_cap)
+					cap1*=opt.feathering;
+					
 					SL[i].djoint=LJ_end;
 				}
 			
@@ -295,6 +381,8 @@ void polyline( Vec2* P, Color* C, double* weight, int size_of_P, polyline_opt* o
 			SL[i].T=T2;
 			SL[i].R=R2;
 			SL[i].bR=bR*0.6;
+			SL[i].t=(float)t;
+			SL[i].r=(float)r;
 			
 			SL[i+1].T1=T31;
 			SL[i+1].R1=R31;
@@ -310,9 +398,12 @@ void polyline( Vec2* P, Color* C, double* weight, int size_of_P, polyline_opt* o
 			SL[i].bR=cap2*0.6;
 			SL[i].T=T2;	SL[i].R=R;
 			SL[i].djoint=LJ_end;
+			
+			if ( opt.feather && !opt.no_feather_at_cap)
+				cap2*=opt.feathering;
 		}
 		else //2nd to 2nd last point
-		{
+		{			
 			//find the angle between the 2 line segments
 			Point ln1,ln2, V;
 			ln1 = Point(P[i]) - Point(P[i-1]);
@@ -320,10 +411,9 @@ void polyline( Vec2* P, Color* C, double* weight, int size_of_P, polyline_opt* o
 			ln1.normalize();
 			ln2.normalize();
 			Point::dot(ln1,ln2, V);
-			
-			//determine joint type
 			double cos_tho=-V.x-V.y;
 			
+			//make intersection
 			Point interP,interR, vP,vR;
 			Point::anchor_outward( T1, P[i],P[i+1]);
 			Point::anchor_outward( T21, P[i],P[i+1]);
@@ -349,17 +439,19 @@ void polyline( Vec2* P, Color* C, double* weight, int size_of_P, polyline_opt* o
 			//make joint
 			switch (opt.joint)
 			{
-			case LJ_miter:
-				if ( cos_tho >= cos_cri_angle)
-					goto joint_treatment_bevel;
-				SL[i].djoint=LJ_miter;
-			break;
-			case LJ_bevel: joint_treatment_bevel:
-				SL[i].djoint=LJ_bevel;
-			break;
-			case LJ_round:
-				SL[i].djoint=LJ_round;
-			break;
+				case LJ_miter:
+					if ( cos_tho >= cos_cri_angle)
+						goto joint_treatment_bevel;
+					SL[i].djoint=LJ_miter;
+				break;
+				
+				case LJ_bevel: joint_treatment_bevel:
+					SL[i].djoint=LJ_bevel;
+				break;
+				
+				case LJ_round:
+					SL[i].djoint=LJ_round;
+				break;
 			}
 			
 			//follow inward/outward ness of the previous vector R
@@ -387,3 +479,5 @@ void polyline( Vec2* P, Color* C, double* weight, int size_of_P, polyline_opt* o
 	
 	delete[] SL;
 }
+
+#endif
