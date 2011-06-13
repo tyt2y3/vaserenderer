@@ -138,62 +138,152 @@ struct _st_polyline
 	bool bevel_at_positive; //used only when djoint==LJ_bevel
 };
 
-void inner_arc_strip( vertex_array_holder& hold, const Point& P, const Color& C,
+void inner_arc_strip( vertex_array_holder& hold, const Point& P, //P: center
+		const Color& C, const Color& C2,
 		float dangle, float angle1, float angle2,
-		float r, float r2, bool ignor_ends=false)
+		float r, float r2, bool ignor_ends,
+		Point* apparent_P)	//(apparent center) center of fan
 {
-	if ( angle1>angle2)
+	const double& m_pi = vaserend_pi;
+	
+	bool incremental=true;
+	
+	if ( angle2 > angle1)
 	{
-		float t=angle1;
-		angle1=angle2;
-		angle2=t;
-	}
-	if ( angle2-angle1>M_PI)
-	{
-		angle2=angle2-2*M_PI;
-		float t=angle1;
-		angle1=angle2;
-		angle2=t;
-	}
-
-	if ( !ignor_ends)
-	{
-		for ( float a=angle1; ; a+=dangle)
+		if ( angle2-angle1>m_pi)
 		{
-			if ( a>angle2)
-				a=angle2;
-			
-			float x=cos(a);
-			float y=sin(a);
-			hold.push( Point(P.x+x*r,P.y-y*r), C);
-			hold.push( Point(P.x+x*r2,P.y-y*r2), C);
-			
-			if ( a>=angle2)
-				break;
+			angle2=angle2-2*m_pi;
 		}
 	}
 	else
 	{
-		for ( float a=angle1+dangle; a<angle2; a+=dangle)
+		if ( angle1-angle2>m_pi)
 		{
-			float x=cos(a);
-			float y=sin(a);
-			hold.push( Point(P.x+x*r,P.y-y*r), C);
-			hold.push( Point(P.x+x*r2,P.y-y*r2), C);
+			angle1=angle1-2*m_pi;
+		}
+	}
+	if ( angle1>angle2)
+	{
+		incremental = false; //means decremental
+	}
+
+	if ( incremental)
+	{
+		if ( ignor_ends)
+		{
+			int i=0;
+			for ( float a=angle1+dangle; a<angle2; a+=dangle, i++)
+			{
+				float x=cos(a);
+				float y=sin(a);
+				hold.push( Point(P.x+x*r,P.y-y*r), C);
+				if ( !apparent_P)
+					hold.push( Point(P.x+x*r2,P.y-y*r2), C2);
+				else
+					hold.push( *apparent_P, C2);
+				
+				if ( i>100) {
+					printf("trapped in loop: inc,ig_end"
+						"angle1=%.2f, angle2=%.2f, dangle=%.2f\n",
+						angle1, angle2, dangle);
+					break;
+				}
+			}
+		}
+		else
+		{
+			int i=0;
+			for ( float a=angle1; ; a+=dangle, i++)
+			{
+				if ( a>angle2)
+					a=angle2;
+				
+				float x=cos(a);
+				float y=sin(a);
+				hold.push( Point(P.x+x*r,P.y-y*r), C);
+				if ( !apparent_P)
+					hold.push( Point(P.x+x*r2,P.y-y*r2), C2);
+				else
+					hold.push( *apparent_P, C2);
+				
+				if ( a>=angle2)
+					break;
+				
+				if ( i>100) {
+					printf("trapped in loop: inc,end"
+						"angle1=%.2f, angle2=%.2f, dangle=%.2f\n",
+						angle1, angle2, dangle);
+					break;
+				}
+			}
+		}
+	}
+	else //decremental
+	{
+		if ( ignor_ends)
+		{
+			int i=0;
+			for ( float a=angle1-dangle; a>angle2; a-=dangle, i++)
+			{
+				float x=cos(a);
+				float y=sin(a);
+				hold.push( Point(P.x+x*r,P.y-y*r), C);
+				if ( !apparent_P)
+					hold.push( Point(P.x+x*r2,P.y-y*r2), C2);
+				else
+					hold.push( *apparent_P, C2);
+				
+				if ( i>100) {
+					printf("trapped in loop: dec,ig_end"
+						"angle1=%.2f, angle2=%.2f, dangle=%.2f\n",
+						angle1, angle2, dangle);
+					break;
+				}
+			}
+		}
+		else
+		{
+			int i=0;
+			for ( float a=angle1; ; a-=dangle, i++)
+			{
+				if ( a<angle2)
+					a=angle2;
+				
+				float x=cos(a);
+				float y=sin(a);
+				hold.push( Point(P.x+x*r,P.y-y*r), C);
+				if ( !apparent_P)
+					hold.push( Point(P.x+x*r2,P.y-y*r2), C2);
+				else
+					hold.push( *apparent_P, C2);
+				
+				if ( a<=angle2)
+					break;
+				
+				if ( i>100) {
+					printf("trapped in loop: dec,end"
+						"angle1=%.2f, angle2=%.2f, dangle=%.2f\n",
+						angle1, angle2, dangle);
+					break;
+				}
+			}
 		}
 	}
 }
-void vectors_to_arc( vertex_array_holder& hold, const Point& P, const Color& C,
-		Point A, Point B, float den, float r, float r2, bool ignor_ends=false)
+void vectors_to_arc( vertex_array_holder& hold, const Point& P,
+		const Color& C, const Color& C2,
+		Point A, Point B, float den, float r, float r2, bool ignor_ends,
+		Point* apparent_P)
 {
+	const double& m_pi = vaserend_pi;
 	A *= 1/r;
 	B *= 1/r;
 	float angle1 = acos(A.x);
 	float angle2 = acos(B.x);
-	if ( A.y>0){ angle1=2*M_PI-angle1;}
-	if ( B.y>0){ angle2=2*M_PI-angle2;}
+	if ( A.y>0){ angle1=2*m_pi-angle1;}
+	if ( B.y>0){ angle2=2*m_pi-angle2;}
 
-	inner_arc_strip( hold, P, C, den/r,angle1,angle2, r,r2, ignor_ends);
+	inner_arc_strip( hold, P, C,C2, den/r,angle1,angle2, r,r2, ignor_ends, apparent_P);
 }
 
 static void polyline_late( Vec2* P, Color* C, _st_polyline* SL, int size_of_P, Point cap1, Point cap2)
@@ -260,18 +350,19 @@ static void polyline_late( Vec2* P, Color* C, _st_polyline* SL, int size_of_P, P
 				}
 				
 				//circular fan
-				float den=10.0f;
-				vectors_to_arc( core, P[i], C[i],
+				float den = SL[i].t/SL[i].r*1.0f;
+				Point apparent_P = plus_minus(P[i],SL[i].vP, !Q);
+				vectors_to_arc( core, P[i], C[i], C[i],
 				plus_minus(SL[i].T1, Q), plus_minus(SL[i].T, Q),
-				den, SL[i].t, 0.0f, true);
+				den, SL[i].t, 0.0f, true, &apparent_P);
 				
 				//succeeding point
 				core.push( plus_minus(P[i],SL[i].T,   Q), C[i]);
 			} break;
-		}
+		}	//*/
 		
 		//inner and outer fade
-		/* for ( int Q=0; Q<=1; Q++)
+		for ( int Q=0; Q<=1; Q++)
 		{
 			switch (SL[i].djoint)
 			{
@@ -301,6 +392,17 @@ static void polyline_late( Vec2* P, Color* C, _st_polyline* SL, int size_of_P, P
 				
 				case LJ_round:
 				{
+				float den = SL[i].t/SL[i].r*1.0f;
+				Color C2=C[i]; C2.a=0.0;
+				if ( SL[i].bevel_at_positive == bool(Q)) {
+					vectors_to_arc( fade[Q], P[i], C[i], C2,
+					plus_minus(SL[i].T1, Q), plus_minus(SL[i].T, Q),
+					den, SL[i].t, SL[i].t+SL[i].r, false, 0);
+				} else {
+					//same as miter
+					fade[Q].push( plus_minus(P[i],SL[i].vP, Q), C[i]);
+					fade[Q].push( plus_minus(P[i],SL[i].vP+SL[i].vR, Q), C[i],true);
+				}
 				} break;
 			}
 		} 	//*/

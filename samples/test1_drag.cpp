@@ -3,6 +3,9 @@
  * compile by: fltk-config --use-gl --compile test1_drag.cpp
  * or something like: g++ -lX11 -lGL 'test1_drag.cpp' -o 'test1_drag'
 */
+#include <math.h>
+#include <stdio.h>
+
 #include "config.h" //config.h must always be placed before any Fl header
 #include <FL/gl.h>
 #include <FL/Fl_Box.H>
@@ -16,9 +19,6 @@ struct Color { float r,g,b,a;};
 
 void test_draw();
 #include "test1_base.cpp"
-
-#include <math.h>
-#include <stdio.h>
 
 const int buf_size=10;
 

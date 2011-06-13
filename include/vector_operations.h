@@ -85,7 +85,7 @@ public:
 	double normalize()
 	{
 		double L = length();
-		if ( L > min_alw)
+		if ( L > vaserend_min_alw)
 		{
 			x /= L; y /= L;
 		}
@@ -108,7 +108,7 @@ public:
 	//judgements
 	static inline bool negligible( double M)
 	{
-		return -min_alw < M && M < min_alw;
+		return -vaserend_min_alw < M && M < vaserend_min_alw;
 	}
 	bool negligible()
 	{
@@ -183,15 +183,15 @@ public:
 		numera = (P4.x-P3.x) * (P1.y-P3.y) - (P4.y-P3.y) * (P1.x-P3.x);
 		numerb = (P2.x-P1.x) * (P1.y-P3.y) - (P2.y-P1.y) * (P1.x-P3.x);
 
-		if (	Point::GET_ABS(numera) < min_alw &&
-			Point::GET_ABS(numerb) < min_alw &&
-			Point::GET_ABS(denom) < min_alw) {
+		if (	Point::GET_ABS(numera) < vaserend_min_alw &&
+			Point::GET_ABS(numerb) < vaserend_min_alw &&
+			Point::GET_ABS(denom) < vaserend_min_alw) {
 		Pout.x = (P1.x + P2.x) / 2;
 		Pout.y = (P1.y + P2.y) / 2;
 		return 2; //meaning the lines coincide
 		}
 
-		if (GET_ABS(denom) < min_alw) {
+		if (GET_ABS(denom) < vaserend_min_alw) {
 		Pout.x = 0;
 		Pout.y = 0;
 		return 0; //meaning lines are parallel

@@ -10,8 +10,8 @@ typedef your_color Color;
 */
 
 //Global variables
-const double min_alw=0.00000000001; //smallest value not regarded as zero
-const double M_PI=3.141592653589793;
+const double vaserend_min_alw=0.00000000001; //smallest value not regarded as zero
+const double vaserend_pi=3.141592653589793;
 
 //Vaserend global variables
 double vaserend_actual_PPI = 96.0;
