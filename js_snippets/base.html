@@ -1,0 +1,54 @@
+<body>
+<script src='raphael-min.js'></script>
+<script src='dragger.js'></script>
+<script src='drawer.js'></script>
+<link rel="stylesheet" type="text/css" href="layout.css" />
+<div class='side_pane'>
+	This is description.
+</div>
+
+<script>
+//an application contains:
+//-TP (drawer)
+//-DG (dragger)
+//-canvas1 (html element)
+//-rl (Raphael canvas)
+var app_count=0;
+
+function demo_application1()
+{
+	var i=this.i=app_count;
+	var parent=this;
+	app_count++;
+	document.write("<div class='main_canvas' id='canvas"+i+"'></div>");
+	
+	this.TP = new drawer();
+	this.DG = new dragger(this.TP,'canvas'+i);
+	this.rl = Raphael('canvas'+i);
+	//
+	this.TP.px=[30,30,200,200];
+	this.TP.py=[100,200,100,200];
+	
+	this.TP.redraw=function()
+	{
+		var rl=parent.rl;
+		var TP=parent.TP;
+		rl.clear();
+		rl.rect(0,0,800-1,600-1);
+		
+		//drawings,,,
+		rl.text(120,80,"I am application "+parent.i+"!");
+		for ( var i=0; i<4; i++)
+		{
+			TP.drawpoint(TP.px[i],TP.py[i], 4,0);
+		}
+		
+		TP.drawpath(rl);
+	}
+	this.TP.redraw();
+}
+
+app1 = new demo_application1();
+//app2 = new demo_application1();
+</script>
+</body>

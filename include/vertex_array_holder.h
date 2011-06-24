@@ -9,11 +9,13 @@ public:
 	float vert[MAX_VERT*2]; //because it holds 2d vectors
 	float color[MAX_VERT*4]; //RGBA
 	int glmode; //drawing mode in opengl
+	bool jumping;
 	
 	vertex_array_holder()
 	{
 		count = 0;
 		glmode = GL_TRIANGLES;
+		jumping = false;
 	}
 	
 	void set_gl_draw_mode( int gl_draw_mode)
@@ -34,8 +36,11 @@ public:
 	
 	void push( const Point& P, const Color& cc, bool transparent=false)
 	{
-		int& i = count;
+		//if ( P.x==0 && P.y==0)
+			//printf("who pushed P(0,0)?\n");
 		
+		int& i = count;
+				
 		vert[i*2]  = P.x;
 		vert[i*2+1]= P.y;
 		
@@ -106,6 +111,49 @@ public:
 			if ( i == MAX_VERT) //as a double check
 				i=0;
 		}
+		
+		if ( jumping)
+		{
+			jumping=false;
+			repeat_last_push();
+		}
+	}
+	
+	Point get(int i)
+	{
+		Point P;
+		P.x = vert[i*2];
+		P.y = vert[i*2+1];
+		return P;
+	}
+	Point get_relative_end(int di=-1)
+	{	//di=-1 is the last one
+		int i = count+di;
+		if ( i<0) i=0;
+		if ( i>=MAX_VERT) i=MAX_VERT-1;
+		return get(i);
+	}
+	void repeat_last_push()
+	{
+		Point P;
+		Color cc;
+		
+		int i = count-1;
+		
+		P.x = vert[i*2];
+		P.y = vert[i*2+1];
+		
+		cc.r = color[i*4];
+		cc.g = color[i*4+1];
+		cc.b = color[i*4+2];
+		cc.a = color[i*4+3];
+		
+		push(P,cc);
+	}
+	void jump() //to make a jump in triangle strip by degenerated triangles
+	{
+		repeat_last_push();
+		jumping=true;
 	}
 	
 	void draw() //the only place to call gl functions

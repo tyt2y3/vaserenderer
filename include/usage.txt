@@ -1,0 +1,17 @@
+The simplest way is to include "vase_renderer_draft1_2.cpp" and it 
+should work.
+
+You should not include "vector_operations.h" or
+"vertex_array_holder.h" directly. It may break things. They are included
+by "vase_renderer_draft1_2.cpp".
+
+To compile "vase_renderer_draft1_2.cpp" separately, you should create an
+empty cpp file and define/ typedef the structs Vec2 and Color BEFORE
+"vase_renderer_draft1_2.cpp" as these structs are expected to be
+provided by you.
+example:
+//file vase_renderer.cpp
+	struct Vec2 { double x,y;};
+	struct Color { float r,g,b,a;};
+	#include "vase_renderer_draft1_2.cpp"
+//end of file

@@ -35,7 +35,6 @@ struct polyline_opt
 	//bool uniform_color;
 	//bool uniform_weight;
 };
-
 void polyline( Vec2* P, Color* C, double* weight, int size_of_P, polyline_opt* options);
 
 #endif

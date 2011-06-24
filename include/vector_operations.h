@@ -14,6 +14,12 @@ public:
 	void clear()			{ x=0.0; y=0.0;}
 	void set(double X, double Y)	{ x=X;   y=Y;}
 	
+	Vec2 vec() {
+		Vec2 V;
+		V.x = x; V.y = y;
+		return V;
+	}
+	
 	//attributes
 	double length()
 	{
@@ -82,6 +88,11 @@ public:
 		x = -x;
 		y = -y;
 	}
+	void opposite_of( const Point& a)
+	{
+		x = -a.x;
+		y = -a.y;
+	}
 	double normalize()
 	{
 		double L = length();
@@ -128,6 +139,17 @@ public:
 	}
 	
 	//others
+	static double distance_squared( const Point& A, const Point& B)
+	{
+		double dx=A.x-B.x;
+		double dy=A.y-B.y;
+		return (dx*dx+dy*dy);
+	}
+	static inline double distance( const Point& A, const Point& B)
+	{
+		return sqrt( distance_squared(A,B));
+	}
+	
 	static inline bool anchor_outward_D( Point& V, const Point& b, const Point& c)
 	{
 		return (b.x*V.x - c.x*V.x + b.y*V.y - c.y*V.y) > 0;
@@ -170,8 +192,6 @@ public:
 		return false;
 	}
 	
-	static inline double GET_ABS(double x) {return x>0?x:-x;}
-	
 	static int intersect( const Point& P1, const Point& P2,  //line 1
 			const Point& P3, const Point& P4, //line 2
 			Point& Pout)			  //the output point
@@ -183,18 +203,18 @@ public:
 		numera = (P4.x-P3.x) * (P1.y-P3.y) - (P4.y-P3.y) * (P1.x-P3.x);
 		numerb = (P2.x-P1.x) * (P1.y-P3.y) - (P2.y-P1.y) * (P1.x-P3.x);
 
-		if (	Point::GET_ABS(numera) < vaserend_min_alw &&
-			Point::GET_ABS(numerb) < vaserend_min_alw &&
-			Point::GET_ABS(denom) < vaserend_min_alw) {
-		Pout.x = (P1.x + P2.x) / 2;
-		Pout.y = (P1.y + P2.y) / 2;
+		if (	negligible(numera) &&
+			negligible(numerb) &&
+			negligible(denom)) {
+		Pout.x = (P1.x + P2.x) * 0.5;
+		Pout.y = (P1.y + P2.y) * 0.5;
 		return 2; //meaning the lines coincide
 		}
 
-		if (GET_ABS(denom) < vaserend_min_alw) {
-		Pout.x = 0;
-		Pout.y = 0;
-		return 0; //meaning lines are parallel
+		if ( negligible(denom)) {
+			Pout.x = 0;
+			Pout.y = 0;
+			return 0; //meaning lines are parallel
 		}
 
 		mua = numera / denom;
@@ -202,12 +222,20 @@ public:
 
 		Pout.x = P1.x + mua * (P2.x - P1.x);
 		Pout.y = P1.y + mua * (P2.y - P1.y);
-		if (mua < 0 || mua > 1 || mub < 0 || mub > 1) {
-		return 3; //meaning the intersection lie outside the segments
+		
+		bool out1 = mua < 0 || mua > 1;
+		bool out2 = mub < 0 || mub > 1;
+		
+		if ( out1 & out2) {
+			return 5; //the intersection lies outside both segments
+		} else if ( out1) {
+			return 3; //the intersection lies outside segment 1
+		} else if ( out2) {
+			return 4; //the intersection lies outside segment 2
 		} else {
-		return 1; //great
+			return 1; //great
 		}
-		//http://paulbourke.net/geometry/lineline2d/
+	//http://paulbourke.net/geometry/lineline2d/
 	}
 }; //end of class Point
 

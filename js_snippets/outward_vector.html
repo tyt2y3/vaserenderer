@@ -1,0 +1,125 @@
+<body>
+<script src='raphael-min.js'></script>
+<script src='dragger.js'></script>
+<script src='drawer.js'></script>
+<link rel="stylesheet" type="text/css" href="layout.css" />
+
+<div class='main_canvas' id='canvas1'></div>
+<div class='side_pane'>
+Blue vectors are "outward" perpendicular vectors.<br />
+Red ones are outward averaged vectors.<br />
+Drag control points to observe.
+</div>
+
+<script>
+TP = new drawer();
+DG = new dragger(TP,'canvas1');
+TP.px=[300,300,500,500]; //feel free to expand these arrays
+TP.py=[400,200,200,400];
+
+TP.redraw=function()
+{
+	rl.clear();
+	rl.rect(0,0,800-1,600-1);
+
+	TP.moveTo( TP.px[0],TP.py[0],0);
+	for ( var i=0; i<TP.px.length; i++)
+	{
+		TP.lineTo( TP.px[i],TP.py[i],0);
+		TP.drawpoint( TP.px[i],TP.py[i],4,0);
+	}
+	make_perpen_vector( TP.px,TP.py);
+	make_outward_vector( TP.px,TP.py);
+
+	TP.drawpath(rl);
+}
+
+function distance( ax,ay,bx,by)
+{
+	return Math.sqrt( (bx-ax)*(bx-ax) + (by-ay)*(by-ay));
+}
+function normalize( V)
+{
+	L= Math.sqrt(V.x*V.x+V.y*V.y);
+	return { x:V.x/L, y:V.y/L};
+}
+function choose_outward(V, b,c)
+{
+	/* //the brute force way to calculate determinant:
+	var determinant = distance(b.x+V.x,b.y+V.y,c.x,c.y) - 
+			distance(b.x-V.x,b.y-V.y,c.x,c.y);*/
+	//a simplified way:
+	var determinant = b.x*V.x - V.x*c.x + b.y*V.y - V.y*c.y;
+	
+	if ( determinant>0)
+	{
+		//positive V is the outward vector
+	} else {
+		//negative V is the outward vector
+		V.x=-V.x;
+		V.y=-V.y;
+	}
+	return V;
+}
+
+function make_perpen_vector( px,py)
+{
+	var L={x:0,y:0};
+	var V={x:0,y:0};
+	for ( var i=0; i<px.length; i++)
+	{
+		var j1,j0;
+		if ( i==0) {
+			j1=1; j0=0;
+		} else if ( i==px.length-1) {
+			j1=px.length-2; j0=px.length-1;
+		} else {
+			j0=i; j1=i-1;
+		}
+
+		L.x=px[j1]-px[j0]; //line vector
+		L.y=py[j1]-py[j0];
+		V.x=-L.y; //perpendicular vector
+		V.y=L.x;
+		V=normalize(V);
+		V.x*=30; //make it longer for observation
+		V.y*=30;
+		if ( i==0) {
+			V=choose_outward( V,{x:px[j1],y:py[j1]},{x:px[j1+1],y:py[j1+1]} );	
+		} else if ( i==px.length-1) {
+			V=choose_outward( V,{x:px[j1],y:py[j1]},{x:px[j1-1],y:py[j1-1]} );
+		} else {
+			V=choose_outward( V,{x:px[j0],y:py[j0]},{x:px[j0+1],y:py[j0+1]} );
+		}
+		TP.drawarrow( px[j0],py[j0],px[j0]+V.x,py[j0]+V.y,null,3);
+	}
+}
+function make_outward_vector( px,py)
+{
+	var L1={x:0,y:0};
+	var L2={x:0,y:0};
+	var V={x:0,y:0};
+	for ( var i=1; i<px.length-1; i++)
+	{
+		L1.x=px[i]-px[i-1];
+		L1.y=py[i]-py[i-1];
+		L2.x=px[i+1]-px[i];
+		L2.y=py[i+1]-py[i];
+		L1=normalize(L1);
+		L2=normalize(L2);
+
+		V.x=L1.x-L2.x; //average vector
+		V.y=L1.y-L2.y;
+		V=normalize(V);
+		V.x*=30; //make it longer for observation
+		V.y*=30;
+		V=choose_outward( V,{x:px[i],y:py[i]},{x:px[i+1],y:py[i+1]} );		
+
+		TP.drawarrow( px[i],py[i],px[i]+V.x,py[i]+V.y,null,1);
+	}
+}
+
+rl = Raphael('canvas1');
+TP.redraw();
+</script>
+</body>

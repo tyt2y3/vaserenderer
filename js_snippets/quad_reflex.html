@@ -1,0 +1,87 @@
+<body>
+<script src='raphael-min.js'></script>
+<script src='dragger.js'></script>
+<script src='drawer.js'></script>
+<link rel="stylesheet" type="text/css" href="layout.css" />
+<div class='side_pane'>
+	Note that we always draw the 2 blue lines correctly, even when
+	the quad is reflexed.<br />
+	This is especially useful when drawing quad by triangle strip
+	to ensure there is no reflex.<br />
+	<button onclick="app1.DG.printpoints(app1.TP)">print points</button>
+</div>
+
+<script>
+var app_count=0;
+
+function distance_squared(x1,y1,x2,y2)
+{
+	dx = x2-x1;
+	dy = y2-y1;
+	return (dx*dx+dy*dy);
+}
+
+function quad_is_reflexed(px,py)
+{
+	//points:
+	//   1------3
+	//  /      /
+	// 0------2
+	// vector 01 parallel to 23
+	
+	return distance_squared(px[1],py[1],px[3],py[3]) + distance_squared(px[0],py[0],px[2],py[2])
+		> distance_squared(px[0],py[0],px[3],py[3]) + distance_squared(px[1],py[1],px[2],py[2]);
+	
+	//when dist(1,3)+dist(0,2) > dist(0,3)+dist(1,2),
+	//  then the quad is reflexed
+}
+
+function demo_application1()
+{
+	var i=this.i=app_count;
+	var parent=this;
+	app_count++;
+	document.write("<div class='main_canvas' id='canvas"+i+"'></div>");
+	
+	this.TP = new drawer();
+	this.DG = new dragger(this.TP,'canvas'+i);
+	this.rl = Raphael('canvas'+i);
+	//
+	this.TP.px=[219,248,441,540];
+	this.TP.py=[335,223,338,231];
+	
+	this.TP.redraw=function()
+	{
+		var rl=parent.rl;
+		var TP=parent.TP;
+		rl.clear();
+		rl.rect(0,0,800-1,600-1);
+		
+		TP.drawarrow( TP.px[0],TP.py[0], TP.px[1],TP.py[1], null, 0);
+		TP.drawarrow( TP.px[2],TP.py[2], TP.px[3],TP.py[3], null, 0);
+		
+		if ( !quad_is_reflexed(TP.px,TP.py))
+		{
+			TP.moveTo( TP.px[0],TP.py[0],3);
+			TP.lineTo( TP.px[2],TP.py[2],3);
+			
+			TP.moveTo( TP.px[1],TP.py[1],3);
+			TP.lineTo( TP.px[3],TP.py[3],3);
+		}
+		else
+		{
+			TP.moveTo( TP.px[0],TP.py[0],3);
+			TP.lineTo( TP.px[3],TP.py[3],3);
+			
+			TP.moveTo( TP.px[1],TP.py[1],3);
+			TP.lineTo( TP.px[2],TP.py[2],3);
+		}
+		
+		TP.drawpath(rl);
+	}
+	this.TP.redraw();
+}
+
+app1 = new demo_application1();
+</script>
+</body>

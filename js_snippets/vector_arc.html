@@ -1,0 +1,109 @@
+<body>
+<script src='raphael-min.js'></script>
+<script src='dragger.js'></script>
+<script src='drawer.js'></script>
+<link rel="stylesheet" type="text/css" href="layout.css" />
+
+<div class='main_canvas' id='canvas1'></div>
+<div class='side_pane'>
+<textarea id='txt'></textarea><br />
+note that we always draw the arc from red to blue.<br />
+Drag control points to observe.<br />
+</div>
+
+<script>
+TP = new drawer();
+DG = new dragger(TP,'canvas1');
+TP.px=[400,400-34.2,400+86.6];
+TP.py=[300,300-94.0,300-50.0];
+
+TP.redraw=function()
+{
+	rl.clear();
+	rl.rect(0,0,800-1,600-1);
+	var P={x:TP.px[0],y:TP.py[0]};
+	var A={x:TP.px[1]-TP.px[0], y:TP.py[1]-TP.py[0]};
+	var B={x:TP.px[2]-TP.px[0], y:TP.py[2]-TP.py[0]};
+	vector_to_arc( P,A,B);
+	TP.drawpath(rl);
+}
+function roundc( c, d)
+{
+	c*=Math.pow(10,d);
+	c =Math.round(c);
+	c/=Math.pow(10,d);
+	return c;
+}
+function vector_to_arc( P, A,B,r)
+{
+	TP.drawarrow( P.x,P.y,P.x+A.x,P.y+A.y, null,1);
+	TP.drawarrow( P.x,P.y,P.x+B.x,P.y+B.y, null,3);
+	TP.drawpoint( P.x+A.x,P.y+A.y, 4,0);
+	TP.drawpoint( P.x+B.x,P.y+B.y, 4,0);
+	var AL=Math.sqrt(A.x*A.x+A.y*A.y);
+	var BL=Math.sqrt(B.x*B.x+B.y*B.y);
+	A.x/=AL;
+	B.x/=BL;
+	var angle1=Math.acos(A.x);
+	var angle2=Math.acos(B.x);
+	if ( A.y>0){angle1=2*Math.PI-angle1;}
+	if ( B.y>0){angle2=2*Math.PI-angle2;}
+
+	inner_arc( P,(AL+BL)/2,Math.PI/18, angle1,angle2);
+}
+function inner_arc( P,r,dangle, angle1,angle2)
+{
+	incremental=true;
+	
+	if ( angle2 > angle1)
+	{
+		if ( angle2-angle1>Math.PI)
+		{
+			angle2=angle2-2*Math.PI;
+		}
+	}
+	else
+	{
+		if ( angle1-angle2>Math.PI)
+		{
+			angle1=angle1-2*Math.PI;
+		}
+	}
+	if ( angle1>angle2)
+	{
+		incremental = false; //means decremental
+	}
+
+	TXT = document.getElementById('txt');
+	TXT.value="angle1: "+roundc(angle1,2)+"\nangle2: "+roundc(angle2,2);
+
+	if ( incremental)
+	{
+		for ( var a=angle1; a<angle2; a+=dangle)
+		{
+			var x=Math.cos(a);
+			var y=Math.sin(a);
+			TP.drawpoint( P.x+x*r,P.y-y*r, 2,0);
+		}
+		TP.drawarrow( P.x+Math.cos(angle1)*r, P.y-Math.sin(angle1)*r,
+				P.x+Math.cos(angle2)*r, P.y-Math.sin(angle2)*r,
+				null,4);
+	}
+	else
+	{
+		for ( var a=angle1; a>angle2; a-=dangle)
+		{
+			var x=Math.cos(a);
+			var y=Math.sin(a);
+			TP.drawpoint( P.x+x*r,P.y-y*r, 2,0);
+		}
+		TP.drawarrow( P.x+Math.cos(angle1)*r, P.y-Math.sin(angle1)*r,
+				P.x+Math.cos(angle2)*r, P.y-Math.sin(angle2)*r,
+				null,4);
+	}
+}
+
+rl = Raphael('canvas1');
+TP.redraw();
+</script>
+</body>

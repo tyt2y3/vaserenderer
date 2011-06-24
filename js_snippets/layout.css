@@ -1,0 +1,10 @@
+.main_canvas
+{
+	width:800px; height:600px;
+}
+
+.side_pane
+{
+	position:absolute;
+	left:810px; top:10px;
+}

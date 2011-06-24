@@ -9,7 +9,7 @@
 #include "config.h" //config.h must always be placed before any Fl header
 #include <FL/gl.h>
 #include <FL/Fl_Box.H>
-#include <FL/Fl_Slider.H>
+#include <FL/Fl_Value_Slider.H>
 #include <FL/Fl_Window.H>
 #include <FL/Fl_Radio_Light_Button.H>
 
@@ -20,18 +20,18 @@ struct Color { float r,g,b,a;};
 void test_draw();
 #include "test1_base.cpp"
 
-const int buf_size=10;
+const int buf_size=20;
 
-Point AP[buf_size]; int size_of_AP=3;
+Vec2 AP[buf_size]; int size_of_AP=0;
 Color AC[buf_size];
 double Aw[buf_size];
 
 Fl_Window* main_wnd;
 Gl_Window* gl_wnd;
-Fl_Slider* weight;
-Fl_Slider* feathering;
+Fl_Slider *weight, *feathering;
 Fl_Button *feather, *no_feather_at_cap, *no_feather_at_core;
 Fl_Button *jt_miter, *jt_bevel, *jt_round;
+Fl_Button *np3, *np4, *np5;
 
 void line_update()
 {
@@ -42,12 +42,36 @@ void line_update()
 		Aw[i] = weight->value();
 	}
 }
-void line_init()
+void line_init( int N)
 {
-	AP[0].x=200; AP[0].y=100;
-	AP[1].x=100; AP[1].y=200;
-	AP[2].x=300; AP[2].y=200;
+	switch (N)
+	{
+	case 3:
+		AP[0].x=200; AP[0].y=100;
+		AP[1].x=100; AP[1].y=200;
+		AP[2].x=300; AP[2].y=200;
+		size_of_AP = 3;
+	break;
+	
+	case 4:
+		AP[0].x=200; AP[0].y=50;
+		AP[1].x=100; AP[1].y=150;
+		AP[2].x=300; AP[2].y=150;
+		AP[3].x=200; AP[3].y=250;
+		size_of_AP = 4;
+	break;
+	
+	case 5:
+		AP[0].x=60; AP[0].y=250;
+		AP[1].x=120; AP[1].y=50;
+		AP[2].x=180; AP[2].y=250;
+		AP[3].x=240; AP[3].y=50;
+		AP[4].x=300; AP[4].y=250;
+		size_of_AP = 5;
+	break;
+	}
 	line_update();
+	gl_wnd->set_drag_target( AP, size_of_AP); 
 }
 char get_joint_type()
 {
@@ -77,23 +101,32 @@ void disable_glstates()
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glDisableClientState(GL_COLOR_ARRAY);
 }
+void np3_cb(Fl_Widget* W, void*)
+{
+	line_init(3);
+	gl_wnd->redraw();
+}
+void np4_cb(Fl_Widget* W, void*)
+{
+	line_init(4);
+	gl_wnd->redraw();
+}
+void np5_cb(Fl_Widget* W, void*)
+{
+	line_init(5);
+	gl_wnd->redraw();
+}
 void drag_cb(Fl_Widget* W, void*)
 {
 	gl_wnd->redraw();
-	
-	char wei_label[30]={0};
-	sprintf(wei_label,"weight=%.2f",weight->value());
-	weight->copy_label(wei_label);
-	
-	char fea_label[30]={0};
-	sprintf(fea_label,"feathering=%.2f",feathering->value());
-	feathering->copy_label(fea_label);
 }
 void make_form()
 {
 	//weight and feathering
-	weight = new Fl_Slider(FL_HOR_SLIDER,400,0,200,20,"weight");
-	feathering = new Fl_Slider(FL_HOR_SLIDER,400,40,200,20,"feathering");
+	weight = new Fl_Value_Slider(400,0,200,20,"weight");
+	weight->type(FL_HOR_SLIDER);
+	feathering = new Fl_Value_Slider(400,40,200,20,"feathering");
+	feathering->type(FL_HOR_SLIDER);
 	weight->bounds(0.01,20.0);
 	feathering->bounds(1.0,10.0);
 	weight->callback(drag_cb);
@@ -128,6 +161,14 @@ void make_form()
 	jt_bevel->callback(drag_cb);
 	jt_round->callback(drag_cb);
 	}
+	
+	//number of points
+	np3 = new Fl_Button(400,280,40,20,"3 pts");
+	np3->callback(np3_cb);
+	np4 = new Fl_Button(440,280,40,20,"4 pts");
+	np4->callback(np4_cb);
+	np5 = new Fl_Button(480,280,40,20,"5 pts");
+	np5->callback(np5_cb);
 }
 void test_draw()
 {
@@ -155,7 +196,7 @@ int main(int argc, char **argv)
 	main_wnd = new Fl_Window( 600,300,"test1 (fltk-opengl)");
 		make_form(); //initialize
 		gl_wnd = new Gl_Window( 0,0,400,300);  gl_wnd->end(); //create gl window
-		line_init();  gl_wnd->set_drag_target( AP, size_of_AP); //set up drag
+		line_init(3);
 	main_wnd->end();
 	main_wnd->show();
 	main_wnd->redraw();
