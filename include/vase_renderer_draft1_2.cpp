@@ -75,7 +75,7 @@ static void determine_t_r ( double w, double& t, double& R)
 }
 static void make_T_R_C( const Point& P1, const Point& P2, Point* T, Point* R, Point* C,
 				double w, const polyline_opt& opt,
-				double* rr, double* tt)
+				double* rr, double* tt, float* dist)
 {
 	double t=1.0,r=0.0;
 	Point DP=P2-P1;
@@ -90,7 +90,8 @@ static void make_T_R_C( const Point& P1, const Point& P2, Point* T, Point* R, Po
 	if (rr) *rr = r;
 	
 	//calculate T,R,C
-	DP.normalize();
+	double len = DP.normalize();
+	if (dist) *dist = (float)len;
 	if (C) *C = DP;
 	DP.perpen();
 	if (T) *T = DP*t;
@@ -143,6 +144,8 @@ struct _st_polyline
 	Point PT,PR;
 	bool R_full_degen;
 	
+	//general info
+	float length; //length from the last point to this point
 	char djoint; //determined joint
 			// e.g. originally a joint is LJ_miter. but it is smaller than critical angle,
 			//   should then set djoint to LJ_bevel
@@ -332,11 +335,6 @@ static void annotate( const Point& P)
 	Color cc;
 	annotate(P,cc);
 }
-static void printpoint( const Point& P, const char* name)
-{
-	printf("%s(%.4f,%.4f) ",name,P.x,P.y);
-	fflush(stdout);
-}
 static void draw_vector( const Point& P, const Point& V, const char* name)
 {
 	Point P2 = P+V*10;
@@ -353,6 +351,12 @@ static void draw_vector( const Point& P, const Point& V, const char* name)
 		gl_draw( name,float(P2.x+2),float(P2.y));
 	}
 }
+static void printpoint( const Point& P, const char* name)
+{
+	printf("%s(%.4f,%.4f) ",name,P.x,P.y);
+	fflush(stdout);
+}
+
 static bool quad_is_reflexed( const Point& P0, const Point& P1, const Point& P2, const Point& P3)
 {
 	//points:
@@ -369,6 +373,7 @@ static void push_quad_safe( vertex_array_holder& core,
 		const Point& P3, const Color& cc3, bool transparent3)
 {
 	//push 2 points to form a quad safely(without reflex)
+	// never called
 	Point P0 = core.get_relative_end(-2);
 	Point P1 = core.get_relative_end(-1);
 	
@@ -692,10 +697,8 @@ void polyline_late( Vec2* P, Color* C, _st_polyline* SL, int size_of_P, Point ca
 		}
 		else
 		{
-			if ( i==0)
-			{	//debug only
-				draw_vector(P_cur,SL[i].T,"T");
-			}
+			//debug only //if ( i==0) draw_vector(P_cur,SL[i].T,"T");
+			
 			//normal line core
 			switch (SL[i].djoint)
 			{
@@ -769,13 +772,15 @@ void polyline_late( Vec2* P, Color* C, _st_polyline* SL, int size_of_P, Point ca
 				else
 					annotate( plus_minus(P_cur,SL[i].vP, !K), C[i],2);
 				*/
-				Color cbt = Color_between(C[i],C[i+1], 0.3f);
+				
+				Color cbt = Color_between(C[i],C[i+1],
+				(SL[i].length*0.5f) / SL[i+1].length); //must sync with TAG-01
+				
 				switch (SL[i].djoint)
 				{
 				case LJ_miter:
 					if ( K != Q) {
-						core.push( SL[i].PT, cbt);
-						K = !K;
+						goto fix_incomplete_welding_bevel_round;
 					} else {
 						core.push( plus_minus(P_cur,SL[i].vP, K), C[i]);
 						core.push( SL[i].PT, cbt);
@@ -783,6 +788,7 @@ void polyline_late( Vec2* P, Color* C, _st_polyline* SL, int size_of_P, Point ca
 				break;
 				case LJ_bevel:
 				case LJ_round:
+				fix_incomplete_welding_bevel_round:
 					//push and repeat the last point _before_ push
 					int a = core.get_count()-1;
 					core.push( SL[i].PT, cbt);
@@ -810,12 +816,13 @@ void polyline_late( Vec2* P, Color* C, _st_polyline* SL, int size_of_P, Point ca
 				}
 				else if ( !SL[i].pre_full)
 				{
-					Point P2 = plus_minus(P_cur,SL[i].vP, !K);
+					Point P2 = plus_minus(P_cur,SL[i].vP, !Q);
 					Point P3 = SL[i].PT;
 					Point P4 = P_las - plus_minus(SL[i-1].T, !SL[i-1].T_outward_at_opp);
 					Point cen= (P3+P4)*0.5;
 					
-					Color cbt = Color_between(C[i],C[i+1], 0.3f);
+					Color cbt = Color_between(C[i],C[i+1],
+					(SL[i].length*0.5f) / SL[i+1].length); //must sync with TAG-01
 					
 					fade[E].jump();
 					fade[E].push(SL[i].PT,cbt);
@@ -997,7 +1004,7 @@ void polyline_late( Vec2* P, Color* C, _st_polyline* SL, int size_of_P, Point ca
 	tris   .draw();
 }
 
-void anchor( Vec2* P, Color* C, double* weight, int size_of_P, polyline_opt* options, 
+void anchor( Vec2* P, Color* C, double* weight, polyline_opt* options, 
 		bool cap_first, bool cap_last)
 {
 	if ( !P || !C || !weight) return;
@@ -1032,9 +1039,9 @@ void anchor( Vec2* P, Color* C, double* weight, int size_of_P, polyline_opt* opt
 	
 		Point cap1;
 		double r,t;
-		make_T_R_C( Point(P[i]), Point(P[i+1]), &T2,&R2,&cap1, weight[i],opt, &r,&t);
-		make_T_R_C( Point(P[i]), Point(P[i+1]), &T31,&R31,0, weight[i+1],opt, 0,0);
-			Point::anchor_outward(R2, P[i+1],P[i+2], 0/*debug only inward_first->value()*/);
+		make_T_R_C( Point(P[i]), Point(P[i+1]), &T2,&R2,&cap1, weight[i],opt, &r,&t,0);
+		make_T_R_C( Point(P[i]), Point(P[i+1]), &T31,&R31,0, weight[i+1],opt, 0,0,0);
+			Point::anchor_outward(R2, P[i+1],P[i+2] /*,inward_first->value()*/);
 				T2.follow_signs(R2);
 		
 		SL[i].bR=cap1;
@@ -1062,7 +1069,7 @@ void anchor( Vec2* P, Color* C, double* weight, int size_of_P, polyline_opt* opt
 	{	int i=2;
 
 		Point cap2;
-		make_T_R_C( P[i-1],P[i], 0,0,&cap2,weight[i],opt, 0,0);
+		make_T_R_C( P[i-1],P[i], 0,0,&cap2,weight[i],opt, 0,0,0);
 		if ( opt.feather && !opt.no_feather_at_cap)
 			cap2*=opt.feathering;
 		cap_end = cap2;
@@ -1078,12 +1085,12 @@ void anchor( Vec2* P, Color* C, double* weight, int size_of_P, polyline_opt* opt
 			P_las -= cap_start;
 		
 		{
-		Point bR;
-		make_T_R_C( P_las, P_cur,  &T1,&R1, 0, weight[i-1],opt,0,0);
-		make_T_R_C( P_las, P_cur, &T21,&R21,0, weight[i],opt,  0,0);
+		Point bR; float length_cur, length_nxt;
+		make_T_R_C( P_las, P_cur,  &T1,&R1, 0, weight[i-1],opt,0,0, &length_cur);
+		make_T_R_C( P_las, P_cur, &T21,&R21,0, weight[i],opt,  0,0,0);
 		
-		make_T_R_C( P_cur, P_nxt,  &T2,&R2,&bR, weight[i],opt, &r,&t);
-		make_T_R_C( P_cur, P_nxt, &T31,&R31,0, weight[i+1],opt, 0,0);
+		make_T_R_C( P_cur, P_nxt,  &T2,&R2,&bR, weight[i],opt, &r,&t, &length_nxt);
+		make_T_R_C( P_cur, P_nxt, &T31,&R31,0, weight[i+1],opt, 0,0,0);
 		
 		//TODO: (optional) weight compensation when segment is < 1.0px and exactly hori/ vertical
 		
@@ -1097,6 +1104,10 @@ void anchor( Vec2* P, Color* C, double* weight, int size_of_P, polyline_opt* opt
 		
 		SL[i+1].T1=T31;
 		SL[i+1].R1=R31;
+		
+		SL[i-1].length = length_cur;
+		SL[i].length = length_cur;
+		SL[i+1].length = length_nxt;
 		}
 		
 		{	//2nd to 2nd last point
@@ -1244,7 +1255,7 @@ void anchor( Vec2* P, Color* C, double* weight, int size_of_P, polyline_opt* opt
 
 		Point bR;
 		double r,t;
-		make_T_R_C( P[i-1],P[i], &T2,&R2,&bR,weight[i],opt,  0,0);
+		make_T_R_C( P[i-1],P[i], &T2,&R2,&bR,weight[i],opt,  0,0,0);
 			same_side_of_line( R2, SL[i-1].R, P[i-1],P[i]);
 				T2.follow_signs(R2);
 		
@@ -1258,7 +1269,65 @@ void anchor( Vec2* P, Color* C, double* weight, int size_of_P, polyline_opt* opt
 		SL[i].degenR = false;
 	}
 	
-	polyline_late( P,C,SL,size_of_P,cap_start,cap_end);
+	polyline_late( P,C,SL,3,cap_start,cap_end);
+}
+
+void polyline( Vec2* P, Color* C, double* weight, int size_of_P, polyline_opt* options)
+{
+	Vec2  PP[3];
+	Color CC[3];
+	double WW[3];
+	
+	Point mid_l, mid_n; //the last and the next mid point
+	Color c_l, c_n;
+	double w_l, w_n;
+	
+	int k=0; //number of anchors
+	
+	if ( size_of_P == 3)
+	{
+		k++; anchor( P,C,weight,options, true,true);
+		return;
+	}
+	
+	//the first anchor
+	{	int i = 1;
+		mid_l = Point::midpoint(P[i],P[i+1]);
+		c_l   = Color_between  (C[i],C[i+1]);
+		w_l   = (weight[i]+weight[i+1]) *0.5;
+		
+		PP[0] = P[i-1];      CC[0] = C[i-1];WW[0] = weight[i-1];
+		PP[1] = P[i];        CC[1] = C[i]; WW[1] = weight[i];
+		PP[2] = mid_l.vec(); CC[2] = c_l;  WW[2] = w_l;
+		
+		k++; anchor( PP,CC,WW,options, true,false);
+	}
+	
+	for ( int i=2; i<size_of_P-2; i++)
+	{
+		mid_n = Point::midpoint(P[i],P[i+1]);
+		c_n   = Color_between  (C[i],C[i+1]);
+		w_n   = (weight[i]+weight[i+1]) *0.5;
+		
+		PP[0] = mid_l.vec(); CC[0] = c_l;  WW[0] = w_l;
+		PP[1] = P[i];        CC[1] = C[i]; WW[1] = weight[i];
+		PP[2] = mid_n.vec(); CC[2] = c_n;  WW[2] = w_n;
+		
+		k++; anchor( PP,CC,WW,options, false,false);
+		
+		mid_l = mid_n;
+		c_l = c_n;
+		w_l = w_n;
+	}
+	
+	//the last anchor
+	{	int i = size_of_P-2;
+		PP[0] = mid_l.vec(); CC[0] = c_l;  WW[0] = w_l;
+		PP[1] = P[i];        CC[1] = C[i]; WW[1] = weight[i];
+		PP[2] = P[i+1];      CC[2] = C[i+1];WW[2]= weight[i+1];
+		
+		k++; anchor( PP,CC,WW,options, false,true);
+	}
 }
 
 #endif

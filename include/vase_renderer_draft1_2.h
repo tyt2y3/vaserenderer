@@ -34,9 +34,6 @@ struct polyline_opt
 	//bool uniform_weight;
 };
 
-void anchor( Vec2* P, Color* C, double* weight, int size_of_P, polyline_opt* options, 
-		bool cap_first=1, bool cap_last=1);
-
 void polyline( Vec2* P, Color* C, double* weight, int size_of_P, polyline_opt* options);
 
 #endif

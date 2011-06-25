@@ -16,6 +16,9 @@ float& Color_get( Color& C, int index)
 
 Color Color_between( const Color& A, const Color& B, float t=0.5f)
 {
+	if ( t<0.0f) t = 0.0f;
+	if ( t>1.0f) t = 1.0f;
+	
 	float kt = 1.0f - t;
 	Color C = { A.r *kt + B.r *t,
 		A.g *kt + B.g *t,

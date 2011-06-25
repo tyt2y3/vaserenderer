@@ -15,7 +15,6 @@
 
 struct Vec2 { double x,y;};
 struct Color { float r,g,b,a;};
-Fl_Button *inward_first;
 #include "../include/vase_renderer_draft1_2.cpp"
 
 void test_draw();
@@ -32,27 +31,32 @@ Gl_Window* gl_wnd;
 Fl_Slider *weight, *feathering;
 Fl_Button *feather, *no_feather_at_cap, *no_feather_at_core;
 Fl_Button *jt_miter, *jt_bevel, *jt_round;
-Fl_Button *np3, *np4, *np5;
-Fl_Button *cap_first, *cap_last;
-Fl_Button *colored;
+Fl_Button *np3, *np4, *np5, *np6;
+Fl_Button *colored, *alphaed;
+//anchor only//Fl_Button *inward_first, *cap_first, *cap_last;
 
 void line_update()
 {
+	Color cc[3];
+	Color grey = {.4,.4,.4, 1};
+	
+	{ Color col={1 , 0, 0, 1}; cc[0]=col;}
+	{ Color col={.8,.8, 0, 1}; cc[1]=col;}
+	{ Color col={ 0, 0, 1, 1}; cc[2]=col;}
+	
 	for ( int i=0; i<buf_size; i++)
 	{
-		Color cc = {0,0,0,0.5};
-		AC[i] = cc;
+		if ( colored->value())
+			AC[i] = cc[i%3];
+		else
+			AC[i] = grey;
+		
+		if ( alphaed->value())
+			AC[i].a = 0.5f;
+		else
+			AC[i].a = 1.0f;
+		
 		Aw[i] = weight->value();
-	}
-	
-	if ( colored->value())
-	{
-		{Color cc={1.0,0.0,0.0,0.5};
-		AC[0] = cc;}
-		{Color cc={0.8,0.8,0.0,0.5};
-		AC[1] = cc;}
-		{Color cc={0.0,0.0,1.0,0.5};
-		AC[2] = cc;}
 	}
 }
 void line_init( int N)
@@ -81,6 +85,16 @@ void line_init( int N)
 		AP[3].x=240; AP[3].y=50;
 		AP[4].x=300; AP[4].y=250;
 		size_of_AP = 5;
+	break;
+	
+	case 6:
+		AP[0].x=280; AP[0].y=110;
+		AP[1].x=200; AP[1].y=50;
+		AP[2].x=100; AP[2].y=150;
+		AP[3].x=300; AP[3].y=150;
+		AP[4].x=200; AP[4].y=250;
+		AP[5].x=120; AP[5].y=190;
+		size_of_AP = 6;
 	break;
 	}
 	line_update();
@@ -114,19 +128,11 @@ void disable_glstates()
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glDisableClientState(GL_COLOR_ARRAY);
 }
-void np3_cb(Fl_Widget* W, void*)
+void np_cb(Fl_Widget* W, void*)
 {
-	line_init(3);
-	gl_wnd->redraw();
-}
-void np4_cb(Fl_Widget* W, void*)
-{
-	line_init(4);
-	gl_wnd->redraw();
-}
-void np5_cb(Fl_Widget* W, void*)
-{
-	line_init(5);
+	int n=3;
+	sscanf( W->label(), "%d", &n);
+	line_init(n);
 	gl_wnd->redraw();
 }
 void drag_cb(Fl_Widget* W, void*)
@@ -177,25 +183,32 @@ void make_form()
 	
 	//number of points
 	np3 = new Fl_Button(400,280,40,20,"3 pts");
-	np3->callback(np3_cb);
-	np4 = new Fl_Button(460,280,40,20,"4 pts");
-	np4->callback(np4_cb);
-	np5 = new Fl_Button(500,280,40,20,"5 pts");
-	np5->callback(np5_cb);
+	np3->callback(np_cb);
+	np4 = new Fl_Button(450,280,20,20,"4");
+	np4->callback(np_cb);
+	np5 = new Fl_Button(470,280,20,20,"5");
+	np5->callback(np_cb);
+	np6 = new Fl_Button(490,280,20,20,"6");
+	np6->callback(np_cb);
 	
-	//cap
-	cap_first = new Fl_Light_Button(400,180,80,15,"cap_first");
+	//test options
+	colored = new Fl_Light_Button(400,265,80,15,"colored");
+	colored->callback(drag_cb);
+	colored->value(1);
+	alphaed = new Fl_Light_Button(480,265,80,15,"alpha-ed");
+	alphaed->callback(drag_cb);
+	alphaed->value(1);
+	
+	//anchor only
+	/*cap_first = new Fl_Light_Button(400,180,80,15,"cap_first");
 	cap_last = new Fl_Light_Button(480,180,80,15,"cap_last");
 	cap_first->callback(drag_cb);
 	cap_last ->callback(drag_cb);
 	cap_first->value(1);
 	cap_last ->value(1);
-	
-	//debug only
-	colored = new Fl_Light_Button(400,265,80,15,"colored");
-	colored->callback(drag_cb);
 	inward_first = new Fl_Light_Button(600-110,265,110,15,"inward first");
 	inward_first->callback(drag_cb);
+	*/
 }
 void test_draw()
 {
@@ -211,7 +224,7 @@ void test_draw()
 	opt.no_feather_at_core = no_feather_at_core->value();
 	opt.joint = get_joint_type();
 	
-	anchor( AP, AC, Aw, size_of_AP, &opt, cap_first->value(), cap_last->value());
+	polyline( AP, AC, Aw, size_of_AP, &opt);
 	
 	/*{
 	Color cc[3];
@@ -240,7 +253,7 @@ int main(int argc, char **argv)
 	main_wnd = new Fl_Window( 600,300,"test1 (fltk-opengl)");
 		make_form(); //initialize
 		gl_wnd = new Gl_Window( 0,0,400,300);  gl_wnd->end(); //create gl window
-		line_init(3);
+		line_init(4);
 	main_wnd->end();
 	main_wnd->show();
 	main_wnd->redraw();

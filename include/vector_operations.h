@@ -138,7 +138,7 @@ public:
 		return !is_zero();
 	}
 	
-	//others
+	//operations require 2 input points
 	static double distance_squared( const Point& A, const Point& B)
 	{
 		double dx=A.x-B.x;
@@ -149,7 +149,31 @@ public:
 	{
 		return sqrt( distance_squared(A,B));
 	}
+	static Point midpoint( const Point& A, const Point& B)
+	{
+		return (A+B)*0.5;
+	}
+	static bool opposite_quadrant( const Point& P1, const Point& P2)
+	{
+		char P1x = P1.x>0? 1:(P1.x<0?-1:0);
+		char P1y = P1.y>0? 1:(P1.y<0?-1:0);
+		char P2x = P2.x>0? 1:(P2.x<0?-1:0);
+		char P2y = P2.y>0? 1:(P2.y<0?-1:0);
+		
+		if ( P1x!=P2x) {
+			if ( P1y!=P2y)
+				return true;
+			if ( P1y==0 || P2y==0)
+				return true;
+		}
+		if ( P1y!=P2y) {
+			if ( P1x==0 || P2x==0)
+				return true;
+		}
+		return false;
+	}
 	
+	//operations of 3 points
 	static inline bool anchor_outward_D( Point& V, const Point& b, const Point& c)
 	{
 		return (b.x*V.x - c.x*V.x + b.y*V.y - c.y*V.y) > 0;
@@ -172,26 +196,7 @@ public:
 		anchor_outward( V,b,c,true);
 	}
 	
-	static bool opposite_quadrant( const Point& P1, const Point& P2)
-	{
-		char P1x = P1.x>0? 1:(P1.x<0?-1:0);
-		char P1y = P1.y>0? 1:(P1.y<0?-1:0);
-		char P2x = P2.x>0? 1:(P2.x<0?-1:0);
-		char P2y = P2.y>0? 1:(P2.y<0?-1:0);
-		
-		if ( P1x!=P2x) {
-			if ( P1y!=P2y)
-				return true;
-			if ( P1y==0 || P2y==0)
-				return true;
-		}
-		if ( P1y!=P2y) {
-			if ( P1x==0 || P2x==0)
-				return true;
-		}
-		return false;
-	}
-	
+	//operations of 4 points
 	static int intersect( const Point& P1, const Point& P2,  //line 1
 			const Point& P3, const Point& P4, //line 2
 			Point& Pout,			  //the output point
