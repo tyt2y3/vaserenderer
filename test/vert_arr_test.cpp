@@ -8,7 +8,9 @@
 #include <FL/Fl_Window.H>
 #include <FL/Fl_Gl_Window.H>
 
-#include "../include/vertex_array_holder.h"
+struct Vec2 { double x,y;};
+struct Color { float r,g,b,a;};
+#include "../include/vase_renderer_draft1_2.cpp"
 
 void test_draw();
 
@@ -62,7 +64,6 @@ void test_draw()
 	
 	vertex_array_holder ln_strip;
 	ln_strip.set_gl_draw_mode(GL_LINE_STRIP);
-	glLineWidth(2.0);
 	for ( int i=0; i<10; i++)
 	{
 		ln_strip.push( Point(10+i*30,50),cc[i%2==0?0:1]);
@@ -76,6 +77,15 @@ void test_draw()
 		tri.push( Point(25+i*30,60),cc[i%2==0?0:1]);
 		tri.push( Point(40+i*30,80),cc[i%2==0?0:1]);
 	}
+	vah_knife_cut( tri, Point(0,60),
+			Point(400,100),
+			Point(0,90) );
+	glLineWidth(1.0);
+	glBegin(GL_LINES);
+		glColor3f(0,0,0);
+		glVertex2f(0,60);
+		glVertex2f(400,100);
+	glEnd();
 	
 	vertex_array_holder fan;
 	fan.set_gl_draw_mode(GL_TRIANGLE_FAN);
@@ -97,12 +107,13 @@ void test_draw()
 	gl_draw( "GL_LINE_STRIP",285,55);
 	gl_draw( "GL_TRIANGLES",310,75);
 	gl_draw( "GL_TRIANGLE_FAN",155,145);
+	gl_draw( "knife",350,95);
 }
 
 
 int main(int argc, char **argv)
 {
-	Gl_Window gl_wnd( 400,200,"vertex array test (fltk-opengl)");
+	Gl_Window gl_wnd( 400,200,"vertex array holder test (fltk-opengl)");
 	gl_wnd.show();
 	gl_wnd.redraw();
 	return Fl::run();

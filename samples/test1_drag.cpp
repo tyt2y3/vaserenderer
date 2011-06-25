@@ -15,6 +15,7 @@
 
 struct Vec2 { double x,y;};
 struct Color { float r,g,b,a;};
+Fl_Button *inward_first;
 #include "../include/vase_renderer_draft1_2.cpp"
 
 void test_draw();
@@ -32,6 +33,8 @@ Fl_Slider *weight, *feathering;
 Fl_Button *feather, *no_feather_at_cap, *no_feather_at_core;
 Fl_Button *jt_miter, *jt_bevel, *jt_round;
 Fl_Button *np3, *np4, *np5;
+Fl_Button *cap_first, *cap_last;
+Fl_Button *colored;
 
 void line_update()
 {
@@ -40,6 +43,16 @@ void line_update()
 		Color cc = {0,0,0,0.5};
 		AC[i] = cc;
 		Aw[i] = weight->value();
+	}
+	
+	if ( colored->value())
+	{
+		{Color cc={1.0,0.0,0.0,0.5};
+		AC[0] = cc;}
+		{Color cc={0.8,0.8,0.0,0.5};
+		AC[1] = cc;}
+		{Color cc={0.0,0.0,1.0,0.5};
+		AC[2] = cc;}
 	}
 }
 void line_init( int N)
@@ -132,7 +145,7 @@ void make_form()
 	weight->callback(drag_cb);
 	feathering->callback(drag_cb);
 	
-	weight->value(6.0);
+	weight->value(8.0);
 	feathering->value(1.0);
 	
 	//feather, no_feather_at_cap, no_feather_at_core
@@ -165,10 +178,24 @@ void make_form()
 	//number of points
 	np3 = new Fl_Button(400,280,40,20,"3 pts");
 	np3->callback(np3_cb);
-	np4 = new Fl_Button(440,280,40,20,"4 pts");
+	np4 = new Fl_Button(460,280,40,20,"4 pts");
 	np4->callback(np4_cb);
-	np5 = new Fl_Button(480,280,40,20,"5 pts");
+	np5 = new Fl_Button(500,280,40,20,"5 pts");
 	np5->callback(np5_cb);
+	
+	//cap
+	cap_first = new Fl_Light_Button(400,180,80,15,"cap_first");
+	cap_last = new Fl_Light_Button(480,180,80,15,"cap_last");
+	cap_first->callback(drag_cb);
+	cap_last ->callback(drag_cb);
+	cap_first->value(1);
+	cap_last ->value(1);
+	
+	//debug only
+	colored = new Fl_Light_Button(400,265,80,15,"colored");
+	colored->callback(drag_cb);
+	inward_first = new Fl_Light_Button(600-110,265,110,15,"inward first");
+	inward_first->callback(drag_cb);
 }
 void test_draw()
 {
@@ -184,7 +211,24 @@ void test_draw()
 	opt.no_feather_at_core = no_feather_at_core->value();
 	opt.joint = get_joint_type();
 	
-	polyline( AP, AC, Aw, size_of_AP, &opt);
+	anchor( AP, AC, Aw, size_of_AP, &opt, cap_first->value(), cap_last->value());
+	
+	/*{
+	Color cc[3];
+	cc[0].r=1.0f; cc[0].g=0.0f; cc[0].b=0.5f; cc[0].a=1.0f;
+	cc[1].r=0.5f; cc[1].g=0.0f; cc[1].b=1.0f; cc[1].a=1.0f;
+	cc[2].r=0.8f; cc[2].g=0.8f; cc[2].b=0.0f; cc[2].a=1.0f;
+	vertex_array_holder tri;
+	tri.set_gl_draw_mode(GL_TRIANGLES);
+	for ( int i=0; i<10; i++)
+	{
+		tri.push( Point(10+i*30,200),cc[0]);
+		tri.push( Point(25+i*30,100),cc[1]);
+		tri.push( Point(40+i*30,200),cc[2]);
+	}
+	vah_knife_cut( tri, AP[0], AP[1], AP[2]);
+	tri.draw();
+	}*/
 	
 	disable_glstates();
 }

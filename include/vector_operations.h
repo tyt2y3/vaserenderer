@@ -194,7 +194,8 @@ public:
 	
 	static int intersect( const Point& P1, const Point& P2,  //line 1
 			const Point& P3, const Point& P4, //line 2
-			Point& Pout)			  //the output point
+			Point& Pout,			  //the output point
+			double* ua_out=0, double* ub_out=0)
 	{ //Determine the intersection point of two line segments
 		double mua,mub;
 		double denom,numera,numerb;
@@ -219,6 +220,8 @@ public:
 
 		mua = numera / denom;
 		mub = numerb / denom;
+		if ( ua_out) *ua_out = mua;
+		if ( ub_out) *ub_out = mub;
 
 		Pout.x = P1.x + mua * (P2.x - P1.x);
 		Pout.y = P1.y + mua * (P2.y - P1.y);

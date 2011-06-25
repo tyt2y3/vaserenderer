@@ -3,11 +3,6 @@
 
 #include <math.h>
 
-struct Color
-{
-	float r,g,b,a;
-};
-
 float& Color_get( Color& C, int index)
 {
 	switch (index)
@@ -17,6 +12,17 @@ float& Color_get( Color& C, int index)
 		case 2: return C.b;
 		default:return C.r;
 	}
+}
+
+Color Color_between( const Color& A, const Color& B, float t=0.5f)
+{
+	float kt = 1.0f - t;
+	Color C = { A.r *kt + B.r *t,
+		A.g *kt + B.g *t,
+		A.b *kt + B.b *t,
+		A.a *kt + B.a *t
+	};
+	return C;
 }
 
 void sRGBtolinear( Color& C, bool exact=false)

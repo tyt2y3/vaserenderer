@@ -22,7 +22,7 @@ function triangle_knife_cut(p1,p2,p3,kn1,kn2,kn3)
 	var poly = []; //the retained polygon
 	var poly_cut = []; //the cut away polygon
 
-	var std_sign = signed_area( kn1,kn2,kn3);	
+	var std_sign = signed_area( kn1,kn2,kn3);
 	var s1 = signed_area( kn1,kn2,p1)>0 == std_sign>0; //true means this point should be cut
 	var s2 = signed_area( kn1,kn2,p2)>0 == std_sign>0;
 	var s3 = signed_area( kn1,kn2,p3)>0 == std_sign>0;

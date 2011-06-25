@@ -80,8 +80,8 @@ void Gl_Window::leftclick_drag()
 	{
 		target[cur_drag].x=curx;
 		target[cur_drag].y=cury;
+		this->redraw();
 	}
-	this->redraw();
 };
 int Gl_Window::handle(int event)
 {

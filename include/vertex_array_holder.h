@@ -3,13 +3,13 @@
 
 class vertex_array_holder
 {
-public:
-	const static int MAX_VERT=128;
 	int count; //counter
-	float vert[MAX_VERT*2]; //because it holds 2d vectors
-	float color[MAX_VERT*4]; //RGBA
 	int glmode; //drawing mode in opengl
 	bool jumping;
+public:
+	const static int MAX_VERT=128;
+	float vert[MAX_VERT*2]; //because it holds 2d vectors
+	float color[MAX_VERT*4]; //RGBA
 	
 	vertex_array_holder()
 	{
@@ -23,6 +23,11 @@ public:
 		glmode = gl_draw_mode;
 	}
 	
+	int get_count()
+	{
+		return count;
+	}
+	
 	void move( int a, int b) //move b into a
 	{
 		vert[a*2]   = vert[b*2];
@@ -33,14 +38,25 @@ public:
 		color[a*4+2]= color[b*4+2];
 		color[a*4+3]= color[b*4+3];
 	}
+	void replace( int a, Point P, Color C)
+	{
+		vert[a*2]   = P.x;
+		vert[a*2+1] = P.y;
+		
+		color[a*4]  = C.r;
+		color[a*4+1]= C.g;
+		color[a*4+2]= C.b;
+		color[a*4+3]= C.a;
+	}
 	
-	void push( const Point& P, const Color& cc, bool transparent=false)
+	int push( const Point& P, const Color& cc, bool transparent=false)
 	{
 		//if ( P.x==0 && P.y==0)
 			//printf("who pushed P(0,0)?\n");
 		
 		int& i = count;
-				
+		int cur = count;
+		
 		vert[i*2]  = P.x;
 		vert[i*2+1]= P.y;
 		
@@ -84,6 +100,7 @@ public:
 				//for line loop it is not correct
 				copy_the_last_point:
 					move(0,MAX_VERT-1);
+					cur=0;
 					i=1;
 				break;
 				
@@ -91,6 +108,7 @@ public:
 				copy_the_last_2_points:
 					move(0,MAX_VERT-2);
 					move(1,MAX_VERT-1);
+					cur=1;
 					i=2;
 				break;
 				
@@ -98,6 +116,7 @@ public:
 					//retain the first point,
 					// and copy the last point
 					move(1,MAX_VERT-1);
+					cur=1;
 					i=2;
 				break;
 				
@@ -117,6 +136,8 @@ public:
 			jumping=false;
 			repeat_last_push();
 		}
+		
+		return cur;
 	}
 	
 	Point get(int i)
@@ -125,6 +146,15 @@ public:
 		P.x = vert[i*2];
 		P.y = vert[i*2+1];
 		return P;
+	}
+	Color get_color(int b)
+	{
+		Color C;
+		C.r = color[b*4];
+		C.g = color[b*4+1];
+		C.b = color[b*4+2];
+		C.a = color[b*4+3];
+		return C;
 	}
 	Point get_relative_end(int di=-1)
 	{	//di=-1 is the last one
@@ -158,9 +188,12 @@ public:
 	
 	void draw() //the only place to call gl functions
 	{
-		glVertexPointer(2, GL_FLOAT, 0, vert);
-		glColorPointer (4, GL_FLOAT, 0, color);
-		glDrawArrays (glmode, 0, count);
+		if ( count > 0) //save some effort
+		{
+			glVertexPointer(2, GL_FLOAT, 0, vert);
+			glColorPointer (4, GL_FLOAT, 0, color);
+			glDrawArrays (glmode, 0, count);
+		}
 	}
 };
 
