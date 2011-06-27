@@ -32,7 +32,7 @@ Fl_Slider *weight, *feathering;
 Fl_Button *feather, *no_feather_at_cap, *no_feather_at_core;
 Fl_Button *jt_miter, *jt_bevel, *jt_round;
 Fl_Button *np3, *np4, *np5, *np6;
-Fl_Button *colored, *alphaed;
+Fl_Button *colored, *alphaed, *weighted;
 //anchor only//Fl_Button *inward_first, *cap_first, *cap_last;
 
 void line_update()
@@ -44,7 +44,7 @@ void line_update()
 	{ Color col={.8,.8, 0, 1}; cc[1]=col;}
 	{ Color col={ 0, 0, 1, 1}; cc[2]=col;}
 	
-	for ( int i=0; i<buf_size; i++)
+	for ( int i=0; i<size_of_AP; i++)
 	{
 		if ( colored->value())
 			AC[i] = cc[i%3];
@@ -55,8 +55,15 @@ void line_update()
 			AC[i].a = 0.5f;
 		else
 			AC[i].a = 1.0f;
-		
-		Aw[i] = weight->value();
+			
+		if ( weighted->value())
+		{
+			Aw[i] = weight->value() * (0.05 + double(i*2)/size_of_AP);
+		}
+		else
+		{
+			Aw[i] = weight->value();
+		}
 	}
 }
 void line_init( int N)
@@ -192,12 +199,14 @@ void make_form()
 	np6->callback(np_cb);
 	
 	//test options
-	colored = new Fl_Light_Button(400,265,80,15,"colored");
+	colored = new Fl_Light_Button(400,250,80,15,"colored");
 	colored->callback(drag_cb);
 	colored->value(1);
-	alphaed = new Fl_Light_Button(480,265,80,15,"alpha-ed");
+	alphaed = new Fl_Light_Button(480,250,80,15,"alpha-ed");
 	alphaed->callback(drag_cb);
 	alphaed->value(1);
+	weighted = new Fl_Light_Button(420,265,80,15,"weighted");
+	weighted->callback(drag_cb);
 	
 	//anchor only
 	/*cap_first = new Fl_Light_Button(400,180,80,15,"cap_first");

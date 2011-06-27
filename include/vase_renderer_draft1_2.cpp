@@ -1247,6 +1247,7 @@ void anchor( Vec2* P, Color* C, double* weight, polyline_opt* options,
 					SL[i].T.follow_signs(SL[i].R);
 				SL[i].vP=SL[i].T;
 				SL[i].vR=SL[i].R;
+				SL[i].djoint=LJ_miter;
 			}
 		} //2nd to 2nd last point
 	}
