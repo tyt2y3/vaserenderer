@@ -1,0 +1,143 @@
+<head>
+	<link rel="stylesheet" type="text/css" href="style.css" />
+</head>
+<body>
+	<div id='wrap'>
+		<div id='sitename'>
+			<h1>Vase Renderer</h1>
+			first draft, version 0.2 (draft1_2)
+		</div>
+		<h2>About</h2>
+<p>Vase renderer(VaseR) is a 2D graphics renderer built on top of OpenGL. Unlike most graphics libraries which are based on <code>SetPixel()</code>, VaseR is based on <code>glDrawArrays()</code>. That means, VaseR takes the advantage of GPU rasterization.</p>
+		<h2>Documentation</h2>
+			<h3>API design</h3>
+<p>VaseR is a renderer and merely translates input vectors into gl calls. VaseR has no states, only a set of functions. Thus you need to pass many parameters to a VaseR function on each call. And these parameters are stored in structures like WinAPI does. Normally if you do not know what options to set, just put <code>0</code> at the parameter <code>polyline_opt*</code>. VaseR ensures empty parameter <code>polyline_opt* options=0</code> <b>or</b> empty structure <code>polyline_opt opt={0};</code> are default options and would not cause any error.</p>
+			<h3>Usage</h3>
+<p>You should provide these structs to VaseR before any vase_renderer_* include by:
+<pre class='code' lang="C++">
+struct Vec2 { double x,y;};
+struct Color { float r,g,b,a;};
+<b>or</b>
+typedef your_vec2 Vec2;
+typedef your_color Color;
+
+#include "../include/vase_renderer_draft1_2.cpp"
+</pre>
+</p>
+<p>
+The recommended way is to include "vase_renderer_draft1_2.cpp" .<br />
+You should not include "vector_operations.h" or "vertex_array_holder.h" directly. It may break things. They are included by "vase_renderer_draft1_2.cpp".<br />
+To compile "vase_renderer_draft1_2.cpp" separately, you should create an empty cpp file and define/ typedef the structs Vec2 and Color <b>before</b> "vase_renderer_draft1_2.cpp" as these structs are expected to be provided by you.
+example:
+	<pre class='code' lang="C++">//file vase_renderer.cpp
+	struct Vec2 { double x,y;};
+	struct Color { float r,g,b,a;};
+	#include "vase_renderer_draft1_2.cpp"
+//end of file</pre>
+</p>
+<table style='width:100%;'><!--table of API-->
+	
+	
+	<tr><td>
+	<h3>polyline()</h3>
+		<pre class='code' lang="C++">void polyline(
+	Vec2* P,       //pointer to array of point of a polyline
+	Color* C,      //array of color
+	double* weight,//array of weight
+	int size_of_P, //size of the buffer P
+	polyline_opt* options) //extra options</pre>
+		<h4>options</h4>
+		<pre class='code' lang="C++">struct polyline_opt
+{	//set the whole structure to 0 will give default options
+	char joint;
+		#define LJ_miter 0
+		#define LJ_bevel 1
+		#define LJ_round 2
+	char cap;
+	bool feather;
+		double feathering;
+		bool no_feather_at_cap;
+		bool no_feather_at_core;
+};</pre>
+	
+	<code>	<table border='1' width='600'>
+			<tr><td colspan='10'>opt.joint =</td></tr>
+			<tr>	<td>LJ_miter<img src='../sample_images/polyline_joint_LJ_miter.png' /></td>
+				<td>LJ_bevel<img src='../sample_images/polyline_joint_LJ_bevel.png' /></td>
+				<td>LJ_round<img src='../sample_images/polyline_joint_LJ_round.png' /></td>
+			</tr>
+		</table>
+		<br />
+		<table border='1' width='600'>
+			<tr><td colspan='10'>opt.cap (not used currently)</td></tr>
+		</table>
+		<br />
+		<table border='1' width='600'>
+			<tr>	
+				<td>opt.feather = false;<br /><img src='../sample_images/polyline_joint_LJ_miter.png' /></td>
+				
+				<td>opt.feather = true;<br />opt.feathering = 8.0;<br />
+				<img src='../sample_images/polyline_feathering_8.png' />
+				</td>
+			</tr>
+			<tr>
+				<td>opt.feather = true;<br />
+				opt.feathering = 8.0;<br />
+				opt.no_feather_at_cap = true;<br />
+				opt.no_feather_at_core = false;<br />
+				<img src='../sample_images/polyline_no_feather_at_cap.png' />
+				</td>
+				
+				<td>opt.feather = true;<br />
+				opt.feathering = 8.0;<br />
+				opt.no_feather_at_cap = false;<br />
+				opt.no_feather_at_core = true;<br />
+				<img src='../sample_images/polyline_no_feather_at_core.png' />
+				</td>
+			</tr>
+		</table>
+		<br />
+	</code>
+		<h4>Usage</h4>
+		<pre class='code' lang="C++">
+void sample_polyline()
+{
+	int size_of_AP=4;
+	Vec2 AP[size_of_AP];
+		AP[0].x=200; AP[0].y=50;
+		AP[1].x=100; AP[1].y=150;
+		AP[2].x=300; AP[2].y=150;
+		AP[3].x=200; AP[3].y=250;
+	Color AC[size_of_AP];
+		{ Color col={1 , 0, 0, 1}; cc[0]=col;}
+		{ Color col={.8,.8, 0, 1}; cc[1]=col;}
+		{ Color col={ 0, 0, 1, 1}; cc[2]=col;}
+		{ Color col={1 , 0, 0, 1}; cc[3]=col;}
+	double Aw[size_of_AP];
+		Aw[0] = 8.0;
+		Aw[1] = 8.0;
+		Aw[2] = 8.0;
+		Aw[3] = 8.0;
+		
+	polyline_opt opt={0};
+	polyline( AP, AC, Aw, size_of_AP, &opt);
+}
+
+glEnableClientState(GL_VERTEX_ARRAY);  //]vertex and color is required by polyline()
+glEnableClientState(GL_COLOR_ARRAY);   //]
+glDisableClientState(GL_NORMAL_ARRAY); //example only, manage your enabled states carefully
+	sample_polyline();
+glDisableClientState(GL_VERTEX_ARRAY);
+glDisableClientState(GL_COLOR_ARRAY);</pre>
+	<img src='../sample_images/test1.png' />
+			<h4>Notes</h4>
+Varying color is stable but has some artifacts at degenerated cases.<br />
+Varying weight is unstable.<br />
+	</td></tr><!--polyline-->
+	
+</table><!--table of API-->
+
+		<h3>Credit</h3>
+Copyright is held by Chris Tsang, tyt2y3@gmail.com
+	</div>
+</body>

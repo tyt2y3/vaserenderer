@@ -31,7 +31,7 @@ Gl_Window* gl_wnd;
 Fl_Slider *weight, *feathering;
 Fl_Button *feather, *no_feather_at_cap, *no_feather_at_core;
 Fl_Button *jt_miter, *jt_bevel, *jt_round;
-Fl_Button *np3, *np4, *np5, *np6;
+Fl_Button *np2, *np3, *np4, *np5, *np6;
 Fl_Button *colored, *alphaed, *weighted;
 //anchor only//Fl_Button *inward_first, *cap_first, *cap_last;
 
@@ -70,6 +70,12 @@ void line_init( int N)
 {
 	switch (N)
 	{
+	case 2:
+		AP[0].x=180; AP[0].y=270;
+		AP[1].x=220; AP[1].y=30;
+		size_of_AP = 2;
+	break;
+	
 	case 3:
 		AP[0].x=200; AP[0].y=100;
 		AP[1].x=100; AP[1].y=200;
@@ -189,13 +195,15 @@ void make_form()
 	}
 	
 	//number of points
-	np3 = new Fl_Button(400,280,40,20,"3 pts");
+	np2 = new Fl_Button(400,280,40,20,"2 pts");
+	np2->callback(np_cb);
+	np3 = new Fl_Button(450,280,20,20,"3");
 	np3->callback(np_cb);
-	np4 = new Fl_Button(450,280,20,20,"4");
+	np4 = new Fl_Button(470,280,20,20,"4");
 	np4->callback(np_cb);
-	np5 = new Fl_Button(470,280,20,20,"5");
+	np5 = new Fl_Button(490,280,20,20,"5");
 	np5->callback(np_cb);
-	np6 = new Fl_Button(490,280,20,20,"6");
+	np6 = new Fl_Button(510,280,20,20,"6");
 	np6->callback(np_cb);
 	
 	//test options

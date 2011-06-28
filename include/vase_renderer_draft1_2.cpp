@@ -85,6 +85,16 @@ static void make_T_R_C( const Point& P1, const Point& P2, Point* T, Point* R, Po
 	if ( opt.feather && !opt.no_feather_at_core)
 		r *= opt.feathering;
 	
+	if ( Point::negligible(DP.x)) {
+		if ( w>0.0 && w<=1.0) {
+			t=0.5; r=0.0;
+		}
+	} else if ( Point::negligible(DP.y)) {
+		if ( w>0.0 && w<=1.0) {
+			t=0.5; r=0.0;
+		}
+	}
+	
 	//output t,r
 	if (tt) *tt = t;
 	if (rr) *rr = r;
@@ -94,6 +104,7 @@ static void make_T_R_C( const Point& P1, const Point& P2, Point* T, Point* R, Po
 	if (dist) *dist = (float)len;
 	if (C) *C = DP;
 	DP.perpen();
+	
 	if (T) *T = DP*t;
 	if (R) *R = DP*r;
 }
@@ -389,7 +400,7 @@ static void push_quad_safe( vertex_array_holder& core,
 	}
 }
 
-int triangle_knife_cut( const Point& kn1, const Point& kn2, const Point& kn_out, //knife
+static int triangle_knife_cut( const Point& kn1, const Point& kn2, const Point& kn_out, //knife
 		Point& p1, Point& p2, Point& p3, Point& p4, //]will modify these for output
 		Color& c1, Color& c2, Color& c3, Color& c4) //]
 {	//return number of points cut away
@@ -1004,12 +1015,79 @@ void polyline_late( Vec2* P, Color* C, _st_polyline* SL, int size_of_P, Point ca
 	tris   .draw();
 }
 
-void anchor( Vec2* P, Color* C, double* weight, polyline_opt* options, 
+static void segment( Vec2* P, Color* C, double* weight, polyline_opt* options, 
 		bool cap_first, bool cap_last)
 {
 	if ( !P || !C || !weight) return;
 	
-	polyline_opt opt;
+	polyline_opt opt={0};
+	if ( options)
+		opt = (*options);
+	
+	Point T1,T2,T21,T31;		//]these are for calculations in early stage
+	Point R1,R2,R21,R31;		//]
+	
+	Point cap_start, cap_end;
+	_st_polyline SL[2];
+	
+	for ( int i=0; i<2; i++)
+	{
+		if ( weight[i]>=0.0 && weight[i]<1.0)
+		{
+			double f=weight[i]-static_cast<int>(weight[i]);
+			C[i].a *=f;
+		}
+	}
+	
+	{	int i=0;
+	
+		Point cap1;
+		make_T_R_C( Point(P[i]), Point(P[i+1]), &T2,&R2,&cap1, weight[i],opt, 0,0,0);
+		
+		if ( cap_first)
+		{
+			cap_start = cap1;
+			cap_start.opposite(); if ( opt.feather && !opt.no_feather_at_cap)
+			cap_start*=opt.feathering;
+		}
+		
+		SL[i].djoint=LJ_end;
+		SL[i].T=T2;
+		SL[i].R=R2;
+		SL[i].bR=cap1;
+		SL[i].degenT = false;
+		SL[i].degenR = false;
+	}
+	
+	{	int i=1;
+
+		Point bR;
+		make_T_R_C( P[i-1],P[i], &T2,&R2,&bR,weight[i],opt,  0,0,0);
+		
+		if ( cap_last)
+		{
+			cap_end = bR;
+			if ( opt.feather && !opt.no_feather_at_cap)
+				cap_end*=opt.feathering;
+		}
+		
+		SL[i].djoint=LJ_end;
+		SL[i].T=T2;
+		SL[i].R=R2;
+		SL[i].bR=bR;
+		SL[i].degenT = false;
+		SL[i].degenR = false;
+	}
+	
+	polyline_late( P,C,SL,2,cap_start,cap_end);
+}
+
+static void anchor( Vec2* P, Color* C, double* weight, polyline_opt* options, 
+		bool cap_first, bool cap_last)
+{
+	if ( !P || !C || !weight) return;
+	
+	polyline_opt opt={0};
 	if ( options)
 		opt = (*options);
 	
@@ -1273,7 +1351,12 @@ void anchor( Vec2* P, Color* C, double* weight, polyline_opt* options,
 	polyline_late( P,C,SL,3,cap_start,cap_end);
 }
 
-void polyline( Vec2* P, Color* C, double* weight, int size_of_P, polyline_opt* options)
+void polyline(
+	Vec2* P,       //pointer to array of point of a polyline
+	Color* C,      //array of color
+	double* weight,//array of weight
+	int size_of_P, //size of the buffer P
+	polyline_opt* options) //extra options
 {
 	Vec2  PP[3];
 	Color CC[3];
@@ -1285,7 +1368,12 @@ void polyline( Vec2* P, Color* C, double* weight, int size_of_P, polyline_opt* o
 	
 	int k=0; //number of anchors
 	
-	if ( size_of_P == 3)
+	if ( size_of_P == 2)
+	{
+		segment( P,C,weight,options, true,true);
+		return;
+	}
+	else if ( size_of_P == 3)
 	{
 		k++; anchor( P,C,weight,options, true,true);
 		return;

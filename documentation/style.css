@@ -1,0 +1,77 @@
+body
+{
+	margin: 0 auto;
+	padding: 0;
+	font: normal normal 13.8pt Palatino, "Palatino Linotype", Georgia, Times,  "Times New Roman", serif;
+	line-height: 18pt;
+	color: #555;
+	background: #AAA;
+}
+
+#wrap
+{
+	width: 900px; margin: 0 auto; padding: 30px 0;
+	border-style: solid;
+	border-color: #FAFAFA;
+	border-top-width: 10px;
+	border-bottom-width: 0px;
+	border-left-width: 10px;
+	border-right-width: 10px;
+	background: #FEFEFE;
+}
+
+#sitename
+{
+	padding: 40px 0 0 0;
+	text-align: center;
+}
+
+code,
+.code
+{
+	font: normal normal 11pt Courier New, Courier, monospace;
+}
+
+h1, h2, h3, h4, h5, h6
+{
+	font-family: Palatino, "Palatino Linotype", Georgia, Times, "Times New Roman", serif;
+	font-weight: normal;
+	color: #777;
+}
+
+h1 { font-size: 26pt; padding: 0 0 0 0;}
+h2 { font-size: 24pt; padding: 0 0 0 0px;}
+h3 { font-size: 22pt; padding: 0 0 0 20px;}
+h4 { font-size: 20pt; line-height: 36px; padding: 0 0 0 100px;}
+h5 { font-size: 14pt; line-height: 27px; padding: 0 0 0 120px;}
+h6 { font-size: 12pt; line-height: 24px; font-weight: bold; color: #999; padding: 0 0 0 160px;}
+
+a
+{
+	color: #ba954f;
+	text-decoration: none;
+	outline: 0;
+}
+
+a:hover { color: #dabc83; }
+
+a img { border: 0; }
+
+blockquote, q { quotes: none; }
+
+blockquote:before, 
+blockquote:after,
+q:before,
+q:after
+{
+	content: '';
+	content: none;
+}
+
+table
+{
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+tr:nth-child(even) {}
+tr:nth-child(odd) {background: #F9F9F9;}
