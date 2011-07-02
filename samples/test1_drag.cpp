@@ -243,23 +243,6 @@ void test_draw()
 	
 	polyline( AP, AC, Aw, size_of_AP, &opt);
 	
-	/*{
-	Color cc[3];
-	cc[0].r=1.0f; cc[0].g=0.0f; cc[0].b=0.5f; cc[0].a=1.0f;
-	cc[1].r=0.5f; cc[1].g=0.0f; cc[1].b=1.0f; cc[1].a=1.0f;
-	cc[2].r=0.8f; cc[2].g=0.8f; cc[2].b=0.0f; cc[2].a=1.0f;
-	vertex_array_holder tri;
-	tri.set_gl_draw_mode(GL_TRIANGLES);
-	for ( int i=0; i<10; i++)
-	{
-		tri.push( Point(10+i*30,200),cc[0]);
-		tri.push( Point(25+i*30,100),cc[1]);
-		tri.push( Point(40+i*30,200),cc[2]);
-	}
-	vah_knife_cut( tri, AP[0], AP[1], AP[2]);
-	tri.draw();
-	}*/
-	
 	disable_glstates();
 }
 

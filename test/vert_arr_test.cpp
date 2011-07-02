@@ -69,22 +69,24 @@ void test_draw()
 		ln_strip.push( Point(10+i*30,50),cc[i%2==0?0:1]);
 	}
 	
-	vertex_array_holder tri;
+	vertex_array_holder tri_ori, tri;
 	tri.set_gl_draw_mode(GL_TRIANGLES);
 	for ( int i=0; i<10; i++)
 	{
-		tri.push( Point(10+i*30,80),cc[i%2==0?0:1]);
-		tri.push( Point(25+i*30,60),cc[i%2==0?0:1]);
-		tri.push( Point(40+i*30,80),cc[i%2==0?0:1]);
+		tri_ori.push( Point(10+i*30,80),cc[i%2==0?0:1]);
+		tri_ori.push( Point(25+i*30,60),cc[i%2==0?0:1]);
+		tri_ori.push( Point(40+i*30,80),cc[i%2==0?0:1]);
 	}
-	vah_knife_cut( tri, Point(0,60),
-			Point(400,100),
-			Point(0,90) );
+	vah_dual_knife_cut( tri_ori, tri,
+			Point(250,50),
+			Point(205,70),
+			Point(220,110) );
 	glLineWidth(1.0);
-	glBegin(GL_LINES);
+	glBegin(GL_LINE_STRIP);
 		glColor3f(0,0,0);
-		glVertex2f(0,60);
-		glVertex2f(400,100);
+		glVertex2f(250,50);
+		glVertex2f(205,70);
+		glVertex2f(220,110);
 	glEnd();
 	
 	vertex_array_holder fan;
@@ -105,9 +107,9 @@ void test_draw()
 	gl_font( FL_HELVETICA, 8); glColor3f(0,0,0);
 	gl_draw( "GL_TRIANGLE_STRIP",285,30);
 	gl_draw( "GL_LINE_STRIP",285,55);
-	gl_draw( "GL_TRIANGLES",310,75);
+	gl_draw( "GL_TRIANGLES",285,75);
 	gl_draw( "GL_TRIANGLE_FAN",155,145);
-	gl_draw( "knife",350,95);
+	gl_draw( "dual knife cut",215,95);
 }
 
 

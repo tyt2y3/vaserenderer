@@ -1,0 +1,120 @@
+<body>
+<script src='raphael-min.js'></script>
+<script src='dragger.js'></script>
+<script src='drawer.js'></script>
+<script src='triangle_knife_cut.js'></script>
+<link rel="stylesheet" type="text/css" href="layout.css" />
+<div class='side_pane'>
+This is the "dual knife cut" method of a triangle.<br />
+The green points define the sides to be cut away.<br />
+It can operate on multiple triangles.<br />
+The cut away part is shown in red and retained part in blue.<br />
+The 2 parts are given offsets (depend on the green points) so they look separated, just for fun.<br />
+Drag the anchors to play. You can also drag the tips of the triangles.<br />
+</div>
+
+<script>
+//math are in 'triangle_knife_cut.js'
+
+//demo application
+var app_count=0;
+
+function make_polygon(TP,P,color, dP)
+{
+	if ( P.length>0)
+	{
+		TP.moveTo(P[0].x+dP.x,P[0].y+dP.y,color);
+		for ( var i=0; i<P.length; i++)
+		{
+			TP.lineTo(P[i].x+dP.x,P[i].y+dP.y,color);
+		}
+		TP.lineTo(P[0].x+dP.x,P[0].y+dP.y,color);
+	}
+}
+function demo_application1()
+{
+	var i=this.i=app_count;
+	var parent=this;
+	app_count++;
+	document.write("<div class='main_canvas' id='canvas"+i+"'></div>");
+	
+	this.TP = new drawer();
+	this.DG = new dragger(this.TP,'canvas'+i);
+	this.rl = Raphael('canvas'+i);
+	//
+	this.TP.px=[650,400,400, 350,450,250, 350,450,550];
+	this.TP.py=[300,300,550, 200,400,400, 200,400,200];
+
+	this.TP.redraw=function()
+	{
+		var rl=parent.rl;
+		var TP=parent.TP;
+		rl.clear();
+		rl.rect(0,0,800-1,600-1);
+		
+		function Point(i)
+		{
+			return {x:TP.px[i],y:TP.py[i]};
+		}
+		var kn1=0, kn2=1; kn3=2; //points that define a knife
+		
+		//draw knife
+		TP.drawpoint(TP.px[kn1],TP.py[kn1], 6,2); //points
+		TP.drawpoint(TP.px[kn2],TP.py[kn2], 6,0);
+		TP.drawpoint(TP.px[kn3],TP.py[kn3], 6,2);
+		
+		TP.moveTo(TP.px[kn1],TP.py[kn1], 0); //lines
+		TP.lineTo(TP.px[kn2],TP.py[kn2], 0);
+		TP.moveTo(TP.px[kn2],TP.py[kn2], 0);
+		TP.lineTo(TP.px[kn3],TP.py[kn3], 0);
+		TP.drawpath(rl);
+		
+		//draw triangles
+		for ( var i=3; i<TP.px.length; i+=3)
+		{	//lines
+			var result1 = triangle_knife_cut( Point(i), Point(i+1), Point(i+2),
+					Point(kn1), Point(kn2), Point(kn3));
+			var result2 = triangle_knife_cut(
+				result1.poly_cut[0], result1.poly_cut[1], result1.poly_cut[2],
+					Point(kn3), Point(kn2), Point(kn1));
+			var result3 = 0;
+			if ( result1.poly_cut.length > 3)
+			{
+			result3 = triangle_knife_cut(
+				result1.poly_cut[0], result1.poly_cut[2], result1.poly_cut[3],
+					Point(kn3), Point(kn2), Point(kn1));
+			}
+			
+			var offset = { x: 0, y: 0};
+			{	var Va = { x: TP.px[kn1]-TP.px[kn2],
+					y: TP.py[kn1]-TP.py[kn2] };
+				var Vb = { x: TP.px[kn3]-TP.px[kn2],
+					y: TP.py[kn3]-TP.py[kn2] };
+				var La = Math.sqrt(Va.x*Va.x + Va.y*Va.y);
+				var Lb = Math.sqrt(Vb.x*Vb.x + Vb.y*Vb.y);
+				Va.x /= La;  Va.y /= La;
+				Vb.x /= Lb;  Vb.y /= Lb;
+				
+				var Vs = { x: Va.x+Vb.x, y: Va.y+Vb.y};
+				offset.x = Vs.x*10;
+				offset.y = Vs.y*10;
+			}
+			
+			make_polygon(TP,result1.poly,    3, {x:-offset.x, y:-offset.y} );
+			make_polygon(TP,result2.poly,    3, {x:-offset.x, y:-offset.y} );
+			make_polygon(TP,result2.poly_cut,1, offset);
+			if ( result3)
+			{
+			make_polygon(TP,result3.poly,    3, {x:-offset.x, y:-offset.y} );
+			make_polygon(TP,result3.poly_cut,1, offset);
+			}
+			
+			TP.fillpath(rl,3);
+			TP.fillpath(rl,1);
+		}
+	}
+	this.TP.redraw();
+}
+app1 = new demo_application1();
+</script>
+</body>

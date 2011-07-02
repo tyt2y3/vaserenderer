@@ -141,9 +141,6 @@ struct _st_polyline
 	Point bR; //out stepping vector, same direction as cap
 	Point T1,R1; //alternate vectors, same direction as T21
 		//all T,R,T1,R1 must point to the same side of the polyline 
-	bool T_outward_at_opp;  //]if true, opposite T to get the outward vector
-	bool T1_outward_at_opp; //]
-	bool bevel_at_positive;
 	
 	//for djoint==LJ_round
 	float t,r;
@@ -153,17 +150,17 @@ struct _st_polyline
 	bool degenR; //fade degenerate
 	bool pre_full; //draw the preceding segment in full
 	Point PT,PR;
+	float pt; //parameter at intersection
 	bool R_full_degen;
 	
 	//general info
-	float length; //length from the last point to this point
 	char djoint; //determined joint
 			// e.g. originally a joint is LJ_miter. but it is smaller than critical angle,
 			//   should then set djoint to LJ_bevel
 	#define LJ_end   101 //used privately by polyline
 };
 
-static void inner_arc_strip( vertex_array_holder& hold, const Point& P, //P: center
+static void inner_arc( vertex_array_holder& hold, const Point& P, //P: center
 		const Color& C, const Color& C2,
 		float dangle, float angle1, float angle2,
 		float r, float r2, bool ignor_ends,
@@ -191,7 +188,7 @@ static void inner_arc_strip( vertex_array_holder& hold, const Point& P, //P: cen
 	{
 		incremental = false; //means decremental
 	}
-
+	
 	if ( incremental)
 	{
 		if ( ignor_ends)
@@ -201,11 +198,15 @@ static void inner_arc_strip( vertex_array_holder& hold, const Point& P, //P: cen
 			{
 				float x=cos(a);
 				float y=sin(a);
-				hold.push( Point(P.x+x*r,P.y-y*r), C);
-				if ( !apparent_P)
-					hold.push( Point(P.x+x*r2,P.y-y*r2), C2);
-				else
-					hold.push( *apparent_P, C2);
+				
+				#define INNER_ARC_PUSH \
+					hold.push( Point(P.x+x*r,P.y-y*r), C);\
+					if ( !apparent_P)\
+						hold.push( Point(P.x+x*r2,P.y-y*r2), C2);\
+					else\
+						hold.push( *apparent_P, C2);
+				
+				INNER_ARC_PUSH
 				
 				if ( i>100) {
 					printf("trapped in loop: inc,ig_end "
@@ -214,6 +215,7 @@ static void inner_arc_strip( vertex_array_holder& hold, const Point& P, //P: cen
 					break;
 				}
 			}
+			//printf( "steps=%d ",i);
 		}
 		else
 		{
@@ -225,11 +227,8 @@ static void inner_arc_strip( vertex_array_holder& hold, const Point& P, //P: cen
 				
 				float x=cos(a);
 				float y=sin(a);
-				hold.push( Point(P.x+x*r,P.y-y*r), C);
-				if ( !apparent_P)
-					hold.push( Point(P.x+x*r2,P.y-y*r2), C2);
-				else
-					hold.push( *apparent_P, C2);
+				
+				INNER_ARC_PUSH
 				
 				if ( a>=angle2)
 					break;
@@ -241,7 +240,6 @@ static void inner_arc_strip( vertex_array_holder& hold, const Point& P, //P: cen
 					break;
 				}
 			}
-			//printf( "steps=%d ",i);
 		}
 	}
 	else //decremental
@@ -253,11 +251,8 @@ static void inner_arc_strip( vertex_array_holder& hold, const Point& P, //P: cen
 			{
 				float x=cos(a);
 				float y=sin(a);
-				hold.push( Point(P.x+x*r,P.y-y*r), C);
-				if ( !apparent_P)
-					hold.push( Point(P.x+x*r2,P.y-y*r2), C2);
-				else
-					hold.push( *apparent_P, C2);
+				
+				INNER_ARC_PUSH
 				
 				if ( i>100) {
 					printf("trapped in loop: dec,ig_end "
@@ -277,11 +272,9 @@ static void inner_arc_strip( vertex_array_holder& hold, const Point& P, //P: cen
 				
 				float x=cos(a);
 				float y=sin(a);
-				hold.push( Point(P.x+x*r,P.y-y*r), C);
-				if ( !apparent_P)
-					hold.push( Point(P.x+x*r2,P.y-y*r2), C2);
-				else
-					hold.push( *apparent_P, C2);
+				
+				INNER_ARC_PUSH
+				#undef INNER_ARC_PUSH
 				
 				if ( a<=angle2)
 					break;
@@ -311,7 +304,7 @@ static void vectors_to_arc( vertex_array_holder& hold, const Point& P,
 	
 	//printf( "steps=%d ",int((angle2-angle1)/den*r));
 
-	inner_arc_strip( hold, P, C,C2, dangle,angle1,angle2, r,r2, ignor_ends, apparent_P);
+	inner_arc( hold, P, C,C2, dangle,angle1,angle2, r,r2, ignor_ends, apparent_P);
 }
 inline static float get_LJ_round_dangle(float t, float r)
 {
@@ -399,24 +392,65 @@ static void push_quad_safe( vertex_array_holder& core,
 		core.push(P2,cc2,transparent2);
 	}
 }
+static void push_quad( vertex_array_holder& core,
+		const Point& P0, const Point& P1, const Point& P2, const Point& P3,
+		const Color& c0, const Color& c1, const Color& c2, const Color& c3,
+		bool trans0=0, bool trans1=0, bool trans2=0, bool trans3=0,
+		bool strip=1)
+{
+	core.push3( P0, P1, P2,
+		    c0, c1, c2,
+	trans0, trans1, trans2);
+	
+	if ( strip)
+	{	core.push3( P1, P2, P3,
+			    c1, c2, c3,
+		trans1, trans2, trans3);
+	}
+	else
+	{	core.push3( P0, P2, P3,
+			    c0, c2, c3,
+		trans0, trans2, trans3);
+	}
+}
+
+struct _st_knife_cut
+{
+	Point T1[4]; //retained polygon, also serves as input triangle
+	Color C1[4]; //
+	
+	Point T2[4]; //cut away polygon
+	Color C2[4]; //
+	
+	int T1c, T2c; //count of T1 & T2
+		//must be 0,3 or 4
+};
 
 static int triangle_knife_cut( const Point& kn1, const Point& kn2, const Point& kn_out, //knife
-		Point& p1, Point& p2, Point& p3, Point& p4, //]will modify these for output
-		Color& c1, Color& c2, Color& c3, Color& c4) //]
-{	//return number of points cut away
-	
+		_st_knife_cut& ST)//will modify for output
+{	//return number of points cut away	
 	bool std_sign = Point::signed_area( kn1,kn2,kn_out) > 0;
-	bool s1 = Point::signed_area( kn1,kn2,p1)>0 == std_sign; //true means this point should be cut
-	bool s2 = Point::signed_area( kn1,kn2,p2)>0 == std_sign;
-	bool s3 = Point::signed_area( kn1,kn2,p3)>0 == std_sign;
+	bool s1 = Point::signed_area( kn1,kn2,ST.T1[0])>0 == std_sign; //true means this point should be cut
+	bool s2 = Point::signed_area( kn1,kn2,ST.T1[1])>0 == std_sign;
+	bool s3 = Point::signed_area( kn1,kn2,ST.T1[2])>0 == std_sign;
 	int sums = int(s1)+int(s2)+int(s3);
 	
 	if ( sums == 0)
 	{	//all 3 points are retained
+		ST.T1c = 3;
+		ST.T2c = 0;
+		
 		return 0;
 	}
 	else if ( sums == 3)
 	{	//all 3 are cut away
+		ST.T1c = 0;
+		
+		ST.T2[0] = ST.T1[0];
+		ST.T2[1] = ST.T1[1];
+		ST.T2[2] = ST.T1[2];
+		ST.T2c = 3;
+		
 		return 3;
 	}
 	else
@@ -431,17 +465,17 @@ static int triangle_knife_cut( const Point& kn1, const Point& kn2, const Point& 
 		Color iC1,iC2, outC;
 		if ( s1) { //here assume one point is cut away
 				// thus only one of s1,s2,s3 is true
-			outp= p1;  outC= c1;
-			ip1 = p2;  iC1 = c2;
-			ip2 = p3;  iC2 = c3;
+			outp= ST.T1[0];  outC= ST.C1[0];
+			ip1 = ST.T1[1];  iC1 = ST.C1[1];
+			ip2 = ST.T1[2];  iC2 = ST.C1[2];
 		} else if ( s2) {
-			outp= p2;  outC= c2;
-			ip1 = p1;  iC1 = c1;
-			ip2 = p3;  iC2 = c3;
+			outp= ST.T1[1];  outC= ST.C1[1];
+			ip1 = ST.T1[0];  iC1 = ST.C1[0];
+			ip2 = ST.T1[2];  iC2 = ST.C1[2];
 		} else if ( s3) {
-			outp= p3;  outC= c3;
-			ip1 = p1;  iC1 = c1;
-			ip2 = p2;  iC2 = c2;
+			outp= ST.T1[2];  outC= ST.C1[2];
+			ip1 = ST.T1[0];  iC1 = ST.C1[0];
+			ip2 = ST.T1[1];  iC2 = ST.C1[1];
 		}
 		
 		Point interP1,interP2;
@@ -455,38 +489,129 @@ static int triangle_knife_cut( const Point& kn1, const Point& kn2, const Point& 
 		//ip1 first gives a triangle strip
 		
 		if ( sums == 1) {
-			p1 = ip1;      c1 = iC1;
-			p2 = ip2;      c2 = iC2;
-			p3 = interP1;  c3 = interC1;
-			p4 = interP2;  c4 = interC2;
 			//one point is cut away
+			ST.T1[0] = ip1;      ST.C1[0] = iC1;
+			ST.T1[1] = ip2;      ST.C1[1] = iC2;
+			ST.T1[2] = interP1;  ST.C1[2] = interC1;
+			ST.T1[3] = interP2;  ST.C1[3] = interC2;
+			ST.T1c = 4;
+			
+			ST.T2[0] = outp;     ST.C2[0] = outC;
+			ST.T2[1] = interP1;  ST.C2[1] = interC1;
+			ST.T2[2] = interP2;  ST.C2[2] = interC2;
+			ST.T2c = 3;
+			
 			return 1;
 		} else if ( sums == 2) {
-			p1 = outp;     c1 = outC;
-			p2 = interP1;  c2 = interC1;
-			p3 = interP2;  c3 = interC2;
 			//two points are cut away
+			ST.T2[0] = ip1;      ST.C2[0] = iC1;
+			ST.T2[1] = ip2;      ST.C2[1] = iC2;
+			ST.T2[2] = interP1;  ST.C2[2] = interC1;
+			ST.T2[3] = interP2;  ST.C2[3] = interC2;
+			ST.T2c = 4;
+			
+			ST.T1[0] = outp;     ST.C1[0] = outC;
+			ST.T1[1] = interP1;  ST.C1[1] = interC1;
+			ST.T1[2] = interP2;  ST.C1[2] = interC2;
+			ST.T1c = 3;
+			
 			return 2;
 		}
 	}
 }
-static void vah_knife_cut( vertex_array_holder& core,
+
+static void vah_dual_knife_cut( vertex_array_holder& in, vertex_array_holder& out,
+		const Point& kn0, const Point& kn1, const Point& kn2)
+{
+	_st_knife_cut ST1, ST2a, ST2b;
+	for ( int i=0; i<in.get_count(); i+=3)
+	{
+		//first cut
+		ST1.T1[0] = in.get(i);
+		ST1.T1[1] = in.get(i+1);
+		ST1.T1[2] = in.get(i+2);
+			ST1.C1[0] = in.get_color(i);
+			ST1.C1[1] = in.get_color(i+1);
+			ST1.C1[2] = in.get_color(i+2);
+		
+		int result1 = triangle_knife_cut( kn0,kn1,kn2, ST1);
+		
+		//second cut
+		ST2a.T1[0] = ST1.T2[0];
+		ST2a.T1[1] = ST1.T2[1];
+		ST2a.T1[2] = ST1.T2[2];
+			ST2a.C1[0] = ST1.C2[0];
+			ST2a.C1[1] = ST1.C2[1];
+			ST2a.C1[2] = ST1.C2[2];
+		int result2a = triangle_knife_cut( kn2,kn1,kn0, ST2a);
+		
+		if ( ST1.T2c > 3)
+		{
+			ST2b.T1[0] = ST1.T2[1];
+			ST2b.T1[1] = ST1.T2[2];
+			ST2b.T1[2] = ST1.T2[3];
+				ST2b.C1[0] = ST1.C2[1];
+				ST2b.C1[1] = ST1.C2[2];
+				ST2b.C1[2] = ST1.C2[3];
+			int result2b = triangle_knife_cut( kn2,kn1,kn0, ST2b);
+		}
+		
+		//push results
+		if ( ST1.T1c > 0) {
+			out.push( ST1.T1[0], ST1.C1[0]);
+			out.push( ST1.T1[1], ST1.C1[1]);
+			out.push( ST1.T1[2], ST1.C1[2]);
+			if ( ST1.T1c > 3) {
+				out.push( ST1.T1[1], ST1.C1[1]);
+				out.push( ST1.T1[2], ST1.C1[2]);
+				out.push( ST1.T1[3], ST1.C1[3]);
+			}
+		}
+		
+		if ( ST2a.T1c > 0) {
+			out.push( ST2a.T1[0], ST2a.C1[0]);
+			out.push( ST2a.T1[1], ST2a.C1[1]);
+			out.push( ST2a.T1[2], ST2a.C1[2]);
+			if ( ST2a.T1c > 3) {
+				out.push( ST2a.T1[1], ST2a.C1[1]);
+				out.push( ST2a.T1[2], ST2a.C1[2]);
+				out.push( ST2a.T1[3], ST2a.C1[3]);
+			}
+		}
+		
+		if ( ST1.T2c > 3) {
+			if ( ST2b.T1c > 0) {
+				out.push( ST2b.T1[0], ST2b.C1[0]);
+				out.push( ST2b.T1[1], ST2b.C1[1]);
+				out.push( ST2b.T1[2], ST2b.C1[2]);
+				if ( ST2b.T1c > 3) {
+					out.push( ST2b.T1[1], ST2b.C1[1]);
+					out.push( ST2b.T1[2], ST2b.C1[2]);
+					out.push( ST2b.T1[3], ST2b.C1[3]);
+				}
+			}
+		}
+		
+		/* //triangle strip
+		for ( int j=0; j<ST2a.T1c; j++)
+			out.push( ST2a.T1[j], ST2a.C1[j])*/
+	}
+}
+static void vah_knife_cut( vertex_array_holder& core, //serves as both input and output
 		const Point& kn1, const Point& kn2, const Point& kn_out)
 {
-	Point p1,p2,p3,p4;
-	Color c1,c2,c3,c4;
+	_st_knife_cut ST;
 	for ( int i=0; i<core.get_count(); i+=3)
 	{
-		p1 = core.get(i);
-		p2 = core.get(i+1);
-		p3 = core.get(i+2);
-		c1 = core.get_color(i);
-		c2 = core.get_color(i+1);
-		c3 = core.get_color(i+2);
+		ST.T1[0] = core.get(i);
+		ST.T1[1] = core.get(i+1);
+		ST.T1[2] = core.get(i+2);
+		ST.C1[0] = core.get_color(i);
+		ST.C1[1] = core.get_color(i+1);
+		ST.C1[2] = core.get_color(i+2);
+		ST.T1c = 3; //will be ignored anyway
 		
-		int result = triangle_knife_cut( kn1,kn2,kn_out,
-					p1,p2,p3,p4,
-					c1,c2,c3,c4);
+		int result = triangle_knife_cut( kn1,kn2,kn_out, ST);
 		
 		switch (result)
 		{
@@ -501,9 +626,9 @@ static void vah_knife_cut( vertex_array_holder& core,
 		
 		case 1:
 		case 2:
-			core.replace(i,p1,c1);
-			core.replace(i+1,p2,c2);
-			core.replace(i+2,p3,c3);
+			core.replace(i,  ST.T1[0],ST.C1[0]);
+			core.replace(i+1,ST.T1[1],ST.C1[1]);
+			core.replace(i+2,ST.T1[2],ST.C1[2]);
 			
 			if ( result==1)
 			{	//create a new triangle
@@ -520,7 +645,7 @@ static void vah_knife_cut( vertex_array_holder& core,
 				core.move( a3, i+2);
 				
 				//make the new point
-				core.replace( a3, p4,c4);
+				core.replace( a3, ST.T1[3],ST.C1[3]);
 			}
 		break;
 		
@@ -528,7 +653,8 @@ static void vah_knife_cut( vertex_array_holder& core,
 	}
 }
 
-void polyline_late( Vec2* P, Color* C, _st_polyline* SL, int size_of_P, Point cap1, Point cap2)
+#if 0
+void polyline_late( const Vec2* P, const Color* C, _st_polyline* SL, int size_of_P, Point cap1, Point cap2)
 {
 	vertex_array_holder core;
 	vertex_array_holder fade[2];
@@ -652,7 +778,7 @@ void polyline_late( Vec2* P, Color* C, _st_polyline* SL, int size_of_P, Point ca
 					//circular fan by degenerated triangles
 					vectors_to_arc( core, P_cur, C[i], C[i],
 					P7-P_cur, P2-P_cur,
-					dangle, SL[i].t, 0.0f, false, &P10);
+					dangle, SL[i].t, 0.0f, false, &P10, false);
 					core.push( P2,C[i]);
 					
 					//Point apparent_P = P_a*1.0 + P_b*0.0 + P_cur;
@@ -663,7 +789,7 @@ void polyline_late( Vec2* P, Color* C, _st_polyline* SL, int size_of_P, Point ca
 					//circular fan by degenerated triangles
 					vectors_to_arc( core, P_cur, C[i], C[i],
 					P7-P_cur, P2-P_cur,
-					dangle, SL[i].t, 0.0f, false, &P10);
+					dangle, SL[i].t, 0.0f, false, &P10, false);
 					K = !K;
 				}
 			} break;
@@ -765,7 +891,7 @@ void polyline_late( Vec2* P, Color* C, _st_polyline* SL, int size_of_P, Point ca
 					vectors_to_arc( core, P_cur, C[i], C[i],
 					plus_minus(SL[i].T1, !SL[i].T1_outward_at_opp),
 					plus_minus(SL[i].T, !SL[i].T_outward_at_opp),
-					dangle, SL[i].t, 0.0f, true, &apparent_P);
+					dangle, SL[i].t, 0.0f, true, &apparent_P, false);
 
 					//succeeding point
 					core.push( T, C[i]);
@@ -934,7 +1060,7 @@ void polyline_late( Vec2* P, Color* C, _st_polyline* SL, int size_of_P, Point ca
 					if ( Q == bool(E)) {
 						vectors_to_arc( fade[E], P_cur, C[i], C2,
 						plus_minus(SL[i].T1, E), plus_minus(SL[i].T, E),
-						dangle, SL[i].t, SL[i].t+SL[i].r, false, 0);
+						dangle, SL[i].t, SL[i].t+SL[i].r, false, 0, false);
 					} else {
 						//same as miter
 						fade[E].push( plus_minus(P_cur,SL[i].vP, E), C[i]);
@@ -1014,8 +1140,313 @@ void polyline_late( Vec2* P, Color* C, _st_polyline* SL, int size_of_P, Point ca
 	cap[1] .draw();
 	tris   .draw();
 }
+#endif
 
-static void segment( Vec2* P, Color* C, double* weight, polyline_opt* options, 
+const float cri_core_adapt = 0.0001f;
+
+static void anchor_late( const Vec2* P, const Color* C, _st_polyline* SL, int size_of_P,
+		vertex_array_holder& tris,
+		Point cap1, Point cap2)
+{
+	tris.set_gl_draw_mode(GL_TRIANGLES);
+	
+	Point P_0, P_1, P_2;
+	P_0 = Point(P[0])-cap1;
+	P_1 = Point(P[1]);
+	P_2 = Point(P[2])-cap2;
+	
+	Point P0, P1, P2, P3, P4, P5, P6, P7;
+	Point P0r,P1r,P2r,P3r,P4r,P5r,P6r,P7r; //fade
+	
+	P0 = P_1 + SL[1].vP;
+		P0r = P0 + SL[1].vR;
+	P1 = P_1 - SL[1].vP;
+		P1r = P1 - SL[1].vR;
+	
+	P2 = P_1 + SL[1].T1;
+		P2r = P2 + SL[1].R1 + SL[0].bR;
+	P3 = P_0 + SL[0].T;
+		P3r = P3 + SL[0].R;
+	P4 = P_0 - SL[0].T;
+		P4r = P4 - SL[0].R;
+	
+	P5 = P_1 + SL[1].T;
+		P5r = P5 + SL[1].R - SL[1].bR;
+	P6 = P_2 + SL[2].T;
+		P6r = P6 + SL[2].R;
+	P7 = P_2 - SL[2].T;
+		P7r = P7 - SL[2].R;
+		
+	Color Cpt; //color at PT
+	if ( SL[1].degenT || SL[1].degenR)
+	{
+		float pt = sqrt(SL[1].pt);
+		if ( SL[1].pre_full)
+			Cpt = Color_between(C[0],C[1], pt);
+		else
+			Cpt = Color_between(C[1],C[2], 1-pt);
+	}
+	
+	if ( SL[1].degenT)
+	{	//degen line core
+		P1 = SL[1].PT;
+			P1r = SL[1].PR;
+		
+		tris.push3( P3,  P2,  P1,
+			  C[0],C[1],C[1]); //fir seg
+		tris.push3( P1,  P5,  P6,
+			  C[1],C[1],C[2]); //las seg
+		
+		if ( SL[1].pre_full)
+		{	tris.push3( P1,  P3,  P4,
+				  C[1],C[0],C[0]);
+		}
+		else
+		{	tris.push3( P1,  P6,  P7,
+				  C[1],C[2],C[2]);
+		}
+	}
+	else if ( SL[1].degenR && SL[1].pt > cri_core_adapt) //&& ! SL[1].degenT
+	{	//line core adapted for degenR
+		if ( SL[1].pre_full)
+		{	//normal last segment
+			tris.push3( P1,  P5,  P6,
+				  C[1],C[1],C[2]);
+			tris.push3( P1,  P6,  P7,
+				  C[1],C[2],C[2]);
+
+			//special first segment
+			Point P9 = SL[1].PT;
+			tris.push3( P3,  P2,  P1,
+				  C[0],C[1],C[1]);
+			tris.push3( P3,  P9,  P1,
+				  C[0], Cpt,C[1]);
+			tris.push3( P3,  P9,  P4,
+				  C[0], Cpt,C[0]);
+		}
+		else
+		{	//normal first segment
+			tris.push3( P3,  P2,  P1,
+				  C[0],C[1],C[1]);
+			tris.push3( P1,  P3,  P4,
+				  C[1],C[0],C[0]);
+
+			//special last segment
+			Point P9 = SL[1].PT;
+			tris.push3( P1,  P5,  P6,
+				  C[1],C[1],C[2]);
+			tris.push3( P1,  P9,  P6,
+				  C[1], Cpt,C[2]);
+			tris.push3( P7,  P9,  P6,
+				  C[2], Cpt,C[2]);
+		
+			/*annotate(P1,C[1],1);
+			annotate(P5,C[1],5);
+			annotate(P6,C[1],6);
+			annotate(P7,C[1],7);
+			annotate(P9,C[1],9);*/
+		}
+	}
+	else
+	{	//normal line core
+		//first segment
+		tris.push3( P3,  P2,  P1,
+			  C[0],C[1],C[1]);
+		tris.push3( P1,  P3,  P4,
+			  C[1],C[0],C[0]);
+		//last segment
+		tris.push3( P1,  P5,  P6,
+			  C[1],C[1],C[2]);
+		tris.push3( P1,  P6,  P7,
+			  C[1],C[2],C[2]);
+	}
+	
+	if ( SL[1].degenR)
+	{	//degen inner fade
+		Point P9 = SL[1].PT;
+			Point P9r = SL[1].PR;
+		
+		Color ccpt=Cpt;
+		if ( SL[1].degenT)
+			ccpt = C[1];
+		
+		if ( SL[1].pre_full)
+		{	push_quad( tris,
+				    P9,  P4, P9r, P4r,
+				  ccpt,C[0],C[1],C[0],
+				     0,   0,   1,   1); //fir seg
+
+			if ( !SL[1].degenT)
+			{
+				Point mid = Point::midpoint(P9,P7);
+				tris.push3( P1,  P9, mid,
+					  C[1], Cpt,C[1],
+					     0,   0,   1);
+				tris.push3( P1,  P7, mid,
+					  C[1],C[2],C[1],
+					     0,   0,   1);
+			}
+		}
+		else
+		{	push_quad( tris,
+				    P9,  P7, P9r, P7r,
+				  ccpt,C[2],C[1],C[2],
+				     0,   0,   1,   1); //las seg
+			
+			if ( !SL[1].degenT)
+			{
+				Point mid = Point::midpoint(P9,P4);
+				tris.push3( P1,  P9, mid,
+					  C[1], Cpt,C[1],
+					     0,   0,   1);
+				tris.push3( P1,  P4, mid,
+					  C[1],C[0],C[1],
+					     0,   0,   1);
+			}
+		}
+	}
+	else
+	{	//normal inner fade
+		push_quad( tris,
+			    P1,  P4, P1r, P4r,
+			  C[1],C[0],C[1],C[0],
+			     0,   0,   1,   1); //fir seg
+		push_quad( tris,
+			    P1,  P7, P1r, P7r,
+			  C[1],C[2],C[1],C[2],
+			     0,   0,   1,   1); //las seg
+	}
+	
+	switch( SL[1].djoint)
+	{	//line core joint
+		case LJ_miter:
+			tris.push3( P2,  P5,  P0,
+				  C[1],C[1],C[1]);
+		case LJ_bevel:
+			tris.push3( P2,  P5,  P1,
+				  C[1],C[1],C[1]);
+		break;
+		
+		case LJ_round: {
+			vertex_array_holder strip;
+			strip.set_gl_draw_mode(GL_TRIANGLE_STRIP);
+			
+			vectors_to_arc( strip, P_1, C[1], C[1],
+			SL[1].T1, SL[1].T,
+			get_LJ_round_dangle(SL[1].t,SL[1].r),
+			SL[1].t, 0.0f, false, &P1);
+			
+			tris.push(strip);
+		} break;
+	}
+	
+	{	//outer fade, whether degen or normal
+		push_quad( tris,
+			    P2,  P3, P2r, P3r,
+			  C[1],C[0],C[1],C[0],
+			     0,   0,   1,   1); //fir seg
+		push_quad( tris,
+			    P5,  P6, P5r, P6r,
+			  C[1],C[2],C[1],C[2],
+			     0,   0,   1,   1); //las seg
+		switch( SL[1].djoint)
+		{	//line fade joint
+			case LJ_miter:
+				push_quad( tris,
+					    P0,  P5, P0r, P5r,
+					  C[1],C[1],C[1],C[1],
+					     0,   0,   1,   1);
+				push_quad( tris,
+					    P0,  P2, P0r, P2r,
+					  C[1],C[1],C[1],C[1],
+					     0,   0,   1,   1);
+			break;
+			case LJ_bevel:
+				push_quad( tris,
+					    P2,  P5, P2r, P5r,
+					  C[1],C[1],C[1],C[1],
+					     0,   0,   1,   1);
+			break;
+			
+			case LJ_round: {
+				vertex_array_holder strip;
+				strip.set_gl_draw_mode(GL_TRIANGLE_STRIP);
+				Color C2 = C[1]; C2.a = 0.0f;
+				vectors_to_arc( strip, P_1, C[1], C2,
+				SL[1].T1, SL[1].T,
+				get_LJ_round_dangle(SL[1].t,SL[1].r),
+				SL[1].t, SL[1].t+SL[1].r, false, 0);
+				
+				tris.push(strip);
+			} break;
+		}
+	}
+	
+	{	//caps
+	vertex_array_holder cap[2];
+	cap[0].set_gl_draw_mode(GL_TRIANGLES);
+	cap[1].set_gl_draw_mode(GL_TRIANGLES);
+	for ( int i=0,k=0; k<=1; i=size_of_P-1, k++)
+	{
+		Point P_cur = P[i];
+		bool degen_nxt=0, degen_las=0;
+		if ( k == 0)
+		{
+			P_cur -= cap1;
+		}
+		if ( k == 1)
+		{
+			P_cur -= cap2;
+		}
+		
+		Point& cur_cap = i==0? cap1:cap2;
+		if ( cur_cap.non_zero()) //save some degenerated points
+		{
+			Point P0,P1,P2,P3,P4,P5,P6;
+			
+			P0 = P_cur+SL[i].T+SL[i].R;
+			P1 = P0+cur_cap;
+			P2 = P_cur+SL[i].T;
+			P4 = P_cur-SL[i].T;
+			P3 = P4-SL[i].R+cur_cap;
+			P5 = P4-SL[i].R;
+			
+			cap[k].push( P0, C[i],true);
+			cap[k].push( P1, C[i],true);
+			cap[k].push( P2, C[i]);
+			
+					cap[k].push( P1, C[i],true);
+				cap[k].push( P2, C[i]);
+			cap[k].push( P3, C[i],true);
+			
+					cap[k].push( P2, C[i]);
+				cap[k].push( P3, C[i],true);
+			cap[k].push( P4, C[i]);
+			
+					cap[k].push( P3, C[i],true);
+				cap[k].push( P4, C[i]);
+			cap[k].push( P5, C[i],true);
+			//say if you want to use triangle strip,
+			//  just push P0~ P5 in sequence
+			
+			if ( SL[1].degenR && SL[1].R_full_degen)
+			{
+				if ((k==0 && !SL[1].pre_full) ||
+					(k==1 && SL[1].pre_full))
+				{
+					vah_knife_cut( cap[k], SL[1].PT, SL[1].PR, P3);
+					/*annotate(SL[1].PT,C[i],0);
+					annotate(SL[1].PR);
+					annotate(P3);*/
+				}
+			}
+			tris.push(cap[k]);
+		}
+	}
+	}
+}
+
+static void segment( const Vec2* P, const Color* C, const double* weight, polyline_opt* options, 
 		bool cap_first, bool cap_last)
 {
 	if ( !P || !C || !weight) return;
@@ -1030,13 +1461,20 @@ static void segment( Vec2* P, Color* C, double* weight, polyline_opt* options,
 	Point cap_start, cap_end;
 	_st_polyline SL[2];
 	
-	for ( int i=0; i<2; i++)
-	{
-		if ( weight[i]>=0.0 && weight[i]<1.0)
+	Color col_buf[2];
+	if ( (weight[0]>=0.0 && weight[0]<1.0) ||
+		(weight[1]>=0.0 && weight[1]<1.0) )
+	{	//we should replace the original color buffer with a new one
+		for ( int i=0; i<2; i++)
 		{
-			double f=weight[i]-static_cast<int>(weight[i]);
-			C[i].a *=f;
+			col_buf[i] = C[i];
+			if ( weight[i]>=0.0 && weight[i]<1.0)
+			{
+				double f=weight[i]-static_cast<int>(weight[i]);
+				col_buf[i].a *=f;
+			}
 		}
+		C = col_buf;
 	}
 	
 	{	int i=0;
@@ -1079,10 +1517,11 @@ static void segment( Vec2* P, Color* C, double* weight, polyline_opt* options,
 		SL[i].degenR = false;
 	}
 	
-	polyline_late( P,C,SL,2,cap_start,cap_end);
+	//polyline_late( P,C,SL,2,cap_start,cap_end);
 }
 
-static void anchor( Vec2* P, Color* C, double* weight, polyline_opt* options, 
+static void anchor( const Vec2* P, const Color* C, const double* weight, polyline_opt* options,
+		vertex_array_holder& push_to, //output triangles
 		bool cap_first, bool cap_last)
 {
 	if ( !P || !C || !weight) return;
@@ -1104,13 +1543,23 @@ static void anchor( Vec2* P, Color* C, double* weight, polyline_opt* options,
 	Point cap_start, cap_end;			//]these 2 lines stores information
 	_st_polyline SL[3];
 	
-	for ( int i=0; i<3; i++)
-	{
-		if ( weight[i]>=0.0 && weight[i]<1.0)
+	bool varying_weight = !(weight[0]==weight[1] & weight[1]==weight[2]);
+	
+	Color col_buf[3];
+	if ( (weight[0]>=0.0 && weight[0]<1.0) ||
+		(weight[1]>=0.0 && weight[1]<1.0) ||
+		(weight[2]>=0.0 && weight[2]<1.0) )
+	{	//we should replace the original color buffer with a new one
+		for ( int i=0; i<3; i++)
 		{
-			double f=weight[i]-static_cast<int>(weight[i]);
-			C[i].a *=f;
+			col_buf[i] = C[i];
+			if ( weight[i]>=0.0 && weight[i]<1.0)
+			{
+				double f=weight[i]-static_cast<int>(weight[i]);
+				col_buf[i].a *=f;
+			}
 		}
+		C = col_buf;
 	}
 	
 	{	int i=0;
@@ -1118,9 +1567,14 @@ static void anchor( Vec2* P, Color* C, double* weight, polyline_opt* options,
 		Point cap1;
 		double r,t;
 		make_T_R_C( Point(P[i]), Point(P[i+1]), &T2,&R2,&cap1, weight[i],opt, &r,&t,0);
+		if ( varying_weight) {
 		make_T_R_C( Point(P[i]), Point(P[i+1]), &T31,&R31,0, weight[i+1],opt, 0,0,0);
-			Point::anchor_outward(R2, P[i+1],P[i+2] /*,inward_first->value()*/);
-				T2.follow_signs(R2);
+		} else {
+			T31 = T2;
+			R31 = R2;
+		}
+		Point::anchor_outward(R2, P[i+1],P[i+2] /*,inward_first->value()*/);
+			T2.follow_signs(R2);
 		
 		SL[i].bR=cap1;
 		
@@ -1165,12 +1619,20 @@ static void anchor( Vec2* P, Color* C, double* weight, polyline_opt* options,
 		{
 		Point bR; float length_cur, length_nxt;
 		make_T_R_C( P_las, P_cur,  &T1,&R1, 0, weight[i-1],opt,0,0, &length_cur);
+		if ( varying_weight) {
 		make_T_R_C( P_las, P_cur, &T21,&R21,0, weight[i],opt,  0,0,0);
+		} else {
+			T21 = T1;
+			R21 = R1;
+		}
 		
 		make_T_R_C( P_cur, P_nxt,  &T2,&R2,&bR, weight[i],opt, &r,&t, &length_nxt);
+		if ( varying_weight) {
 		make_T_R_C( P_cur, P_nxt, &T31,&R31,0, weight[i+1],opt, 0,0,0);
-		
-		//TODO: (optional) weight compensation when segment is < 1.0px and exactly hori/ vertical
+		} else {
+			T31 = T2;
+			R31 = R2;
+		}
 		
 		SL[i].T=T2;
 		SL[i].R=R2;
@@ -1182,10 +1644,6 @@ static void anchor( Vec2* P, Color* C, double* weight, polyline_opt* options,
 		
 		SL[i+1].T1=T31;
 		SL[i+1].R1=R31;
-		
-		SL[i-1].length = length_cur;
-		SL[i].length = length_cur;
-		SL[i+1].length = length_nxt;
 		}
 		
 		{	//2nd to 2nd last point
@@ -1200,24 +1658,59 @@ static void anchor( Vec2* P, Color* C, double* weight, polyline_opt* options,
 			double cos_tho=-V.x-V.y;
 			bool zero_degree = Point::negligible(cos_tho-1);
 			bool d180_degree = cos_tho < -1+0.0001;
+			bool smaller_than_30_degree = cos_tho > 0.8660254;
 			
-			if ( cos_tho < 0)
+			if ( cos_tho < 0 || opt.joint==LJ_round)
 			{	//when greater than 90 degrees
-				SL[i-1].bR.opposite();
-				SL[i+1].bR.opposite();
+				SL[i-1].bR = Point();
+				SL[i]  .bR = Point();
+				SL[i+1].bR = Point();
 				//to solve an overdraw in bevel joint
 			}
 			
+			Point::anchor_outward( T1, P_cur,P_nxt);
+				R1.follow_signs(T1);
+			Point::anchor_outward( T21, P_cur,P_nxt);
+				R21.follow_signs(T21);
+				SL[i].T1.follow_signs(T21);
+				SL[i].R1.follow_signs(T21);
+			Point::anchor_outward( T2, P_cur,P_las);
+				R2.follow_signs(T2);
+				SL[i].T.follow_signs(T2);
+				SL[i].R.follow_signs(T2);
+			Point::anchor_outward( T31, P_cur,P_las);
+				R31.follow_signs(T31);
+			
+			{ //must do intersection
+				Point interP, vP;
+				int result3 = Point::intersect( P_las+T1, P_cur+T21,
+							P_nxt+T31, P_cur+T2,
+							interP);
+				
+				if ( result3) {
+					vP = interP - P_cur;
+					SL[i].vP=vP;
+					SL[i].vR=vP*(r/t);
+				} else {
+					SL[i].vP=SL[i].T;
+					SL[i].vR=SL[i].R;
+					printf( "intersection failed: cos(angle)=%.4f, angle=%.4f(degree)\n",
+						cos_tho, acos(cos_tho)*180/3.14159);
+				}
+			}
+			
+			T1.opposite();		//]inward
+				R1.opposite();
+			T21.opposite();
+				R21.opposite();
+			T2.opposite();
+				R2.opposite();
+			T31.opposite();
+				R31.opposite();
+			
 			//make intersections
 			Point PR1,PR2, PT1,PT2;
-			Point::anchor_inward( T1, P_cur,P_nxt);
-				R1.follow_signs(T1);
-			Point::anchor_inward( T21, P_cur,P_nxt);
-				R21.follow_signs(T21);
-			Point::anchor_inward( T2, P_cur,P_las);
-				R2.follow_signs(T2);
-			Point::anchor_inward( T31, P_cur,P_las);
-				R31.follow_signs(T31);
+			double pt1,pt2;
 			
 			int result1r = Point::intersect( P_nxt-T31-R31, P_nxt+T31+R31,
 						P_las+T1+R1, P_cur+T21+R21, //knife1
@@ -1230,18 +1723,37 @@ static void anchor( Vec2* P, Color* C, double* weight, polyline_opt* options,
 			//
 			int result1t = Point::intersect( P_nxt-T31, P_nxt+T31,
 						P_las+T1, P_cur+T21, //knife1_a
-						PT1); //core
+						PT1, 0,&pt1); //core
 			int result2t = Point::intersect( P_las-T1, P_las+T1,
 						P_nxt+T31, P_cur+T2, //knife2_a
-						PT2);
+						PT2, 0,&pt2);
 			bool is_result1t = result1t == 1;
 			bool is_result2t = result2t == 1;
 			//
-			if ( (is_result1r | is_result2r) && !zero_degree)
+			
+			//TODO: handle segment
+			/*if ( zero_degree)
+			{
+				bool pre_full = is_result1t;
+				if ( pre_full)
+				{
+					segment( P,C,weight,options,cap_first,cap_last);
+				}
+				else
+				{
+					segment( &P[1],&C[1],&weight[1],options,cap_first,cap_last);
+				}
+				return;
+			}*/
+			
+			if ( is_result1r | is_result2r)
 			{	//fade degeneration
 				SL[i].degenR=true;
 				SL[i].PT = is_result1r? PT1:PT2; //this is is_result1r!!
 				SL[i].PR = is_result1r? PR1:PR2;
+				SL[i].pt = float(is_result1r? pt1:pt2);
+					if ( SL[i].pt < 0)
+						SL[i].pt = cri_core_adapt;
 				SL[i].pre_full = is_result1r;
 				SL[i].R_full_degen = false;
 				
@@ -1268,11 +1780,12 @@ static void anchor( Vec2* P, Color* C, double* weight, polyline_opt* options,
 				}
 			}
 			
-			if ( (is_result1t | is_result2t) && !zero_degree)
+			if ( is_result1t | is_result2t)
 			{	//core degeneration
 				SL[i].degenT=true;
 				SL[i].pre_full=is_result1t;
 				SL[i].PT = is_result1t? PT1:PT2;
+				SL[i].pt = float(is_result1t? pt1:pt2);
 			}
 			
 			//make joint
@@ -1281,43 +1794,28 @@ static void anchor( Vec2* P, Color* C, double* weight, polyline_opt* options,
 				if ( cos_tho >= cos_cri_angle)
 					SL[i].djoint=LJ_bevel;
 			
-			T1.opposite();  //outward
-			T21.opposite(); //outward
-				SL[i].T1.follow_signs(T21);
-				SL[i].R1.follow_signs(T21);
-			T2.opposite();  //outward
-				SL[i].T.follow_signs(T2);
-				SL[i].R.follow_signs(T2);
-			T31.opposite(); //outward
-			
-			{ //must do intersection
-				Point interP, vP;
-				int result3 = Point::intersect( P_las+T1, P_cur+T21,
-							P_nxt+T31, P_cur+T2,
-							interP);
-				
-				if ( result3) {
-					vP = interP - P_cur;
-					SL[i].vP=vP;
-					SL[i].vR=vP*(r/t);
-				} else {
-					SL[i].vP=SL[i].T;
-					SL[i].vR=SL[i].R;
-					printf( "intersection failed: cos(angle)=%.4f, angle=%.4f(degree)\n",
-						cos_tho, acos(cos_tho)*180/3.14159);
-				}
-			}
+			/*if ( varying_weight && smaller_than_30_degree)
+			{	//not sure why, but it appears to solve a visual bug for varing weight
+				Point interR,vR;
+				int result3 = Point::intersect( P_las-T1-R1, P_cur-T21-R21,
+							P_nxt-T31-R31, P_cur-T2-R2,
+							interR);
+				SL[i].vR = P_cur-interR-SL[i].vP;
+				annotate(interR,C[i],9);
+				draw_vector(P_las-T1-R1, P_cur-T21-R21 - P_las+T1+R1,"1");
+				draw_vector(P_nxt-T31-R31, P_cur-T2-R2 - P_nxt+T31+R31,"2");
+			}*/
 			
 			//follow inward/outward ness of the previous vector R
 			bool ward = Point::anchor_outward_D(SL[i-1].R, P_cur,P_nxt);
-			SL[i].bevel_at_positive = ! Point::anchor_outward( SL[i].vP, P_cur,P_nxt, !ward);
+			/*SL[i].bevel_at_positive = !*/ Point::anchor_outward( SL[i].vP, P_cur,P_nxt, !ward);
 				SL[i].vR.follow_signs( SL[i].vP);
-			SL[i].T_outward_at_opp = Point::anchor_outward( SL[i].R, P_cur,P_las, !ward);
+			Point::anchor_outward( SL[i].R, P_cur,P_las, !ward);
 				SL[i].T.follow_signs( SL[i].R);
-			SL[i].T1_outward_at_opp = Point::anchor_outward( SL[i].R1, P_cur,P_nxt, !ward);
+			Point::anchor_outward( SL[i].R1, P_cur,P_nxt, !ward);
 				SL[i].T1.follow_signs( SL[i].R1);
 			
-			if ( d180_degree || zero_degree)
+			if ( d180_degree)
 			{	//to solve visual bugs 3 and 1.1
 				//efficiency: if color and weight is same as previous and next point
 				// ,do not generate vertices
@@ -1347,14 +1845,14 @@ static void anchor( Vec2* P, Color* C, double* weight, polyline_opt* options,
 		SL[i].degenT = false;
 		SL[i].degenR = false;
 	}
-	
-	polyline_late( P,C,SL,3,cap_start,cap_end);
+
+	anchor_late( P,C,SL,3, push_to, cap_start,cap_end);
 }
 
 void polyline(
-	Vec2* P,       //pointer to array of point of a polyline
-	Color* C,      //array of color
-	double* weight,//array of weight
+	const Vec2* P,       //pointer to array of point of a polyline
+	const Color* C,      //array of color
+	const double* weight,//array of weight
 	int size_of_P, //size of the buffer P
 	polyline_opt* options) //extra options
 {
@@ -1365,6 +1863,11 @@ void polyline(
 	Point mid_l, mid_n; //the last and the next mid point
 	Color c_l, c_n;
 	double w_l, w_n;
+	{	//init for the first anchor
+		mid_l = P[0];
+		c_l = C[0];
+		w_l = weight[0];
+	}
 	
 	int k=0; //number of anchors
 	
@@ -1375,47 +1878,38 @@ void polyline(
 	}
 	else if ( size_of_P == 3)
 	{
-		k++; anchor( P,C,weight,options, true,true);
+		vertex_array_holder AH;
+		k++; anchor( P,C,weight,options, AH, true,true);
+		AH.draw();
 		return;
 	}
 	
-	//the first anchor
-	{	int i = 1;
-		mid_l = Point::midpoint(P[i],P[i+1]);
-		c_l   = Color_between  (C[i],C[i+1]);
-		w_l   = (weight[i]+weight[i+1]) *0.5;
-		
-		PP[0] = P[i-1];      CC[0] = C[i-1];WW[0] = weight[i-1];
-		PP[1] = P[i];        CC[1] = C[i]; WW[1] = weight[i];
-		PP[2] = mid_l.vec(); CC[2] = c_l;  WW[2] = w_l;
-		
-		k++; anchor( PP,CC,WW,options, true,false);
-	}
-	
-	for ( int i=2; i<size_of_P-2; i++)
+	for ( int i=1; i<size_of_P-1; i++)
 	{
-		mid_n = Point::midpoint(P[i],P[i+1]);
-		c_n   = Color_between  (C[i],C[i+1]);
-		w_n   = (weight[i]+weight[i+1]) *0.5;
+		vertex_array_holder AH;
+		
+		if ( i == size_of_P-2) {
+			mid_n = P[i+1];
+			c_n   = C[i+1];
+			w_n   = weight[i+1];
+		}
+		else {
+			mid_n = Point::midpoint(P[i],P[i+1]);
+			c_n   = Color_between  (C[i],C[i+1]);
+			w_n   = (weight[i]+weight[i+1]) *0.5;
+		}
 		
 		PP[0] = mid_l.vec(); CC[0] = c_l;  WW[0] = w_l;
 		PP[1] = P[i];        CC[1] = C[i]; WW[1] = weight[i];
 		PP[2] = mid_n.vec(); CC[2] = c_n;  WW[2] = w_n;
 		
-		k++; anchor( PP,CC,WW,options, false,false);
+		k++; anchor( PP,CC,WW,options, AH, i==1,i==size_of_P-2);
 		
 		mid_l = mid_n;
 		c_l = c_n;
 		w_l = w_n;
-	}
-	
-	//the last anchor
-	{	int i = size_of_P-2;
-		PP[0] = mid_l.vec(); CC[0] = c_l;  WW[0] = w_l;
-		PP[1] = P[i];        CC[1] = C[i]; WW[1] = weight[i];
-		PP[2] = P[i+1];      CC[2] = C[i+1];WW[2]= weight[i+1];
 		
-		k++; anchor( PP,CC,WW,options, false,true);
+		AH.draw();
 	}
 }
 

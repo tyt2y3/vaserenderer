@@ -13,7 +13,7 @@
 			<h3>API design</h3>
 <p>VaseR is a renderer and merely translates input vectors into gl calls. VaseR has no states, only a set of functions. Thus you need to pass many parameters to a VaseR function on each call. And these parameters are stored in structures like WinAPI does. Normally if you do not know what options to set, just put <code>0</code> at the parameter <code>polyline_opt*</code>. VaseR ensures empty parameter <code>polyline_opt* options=0</code> <b>or</b> empty structure <code>polyline_opt opt={0};</code> are default options and would not cause any error.</p>
 			<h3>Usage</h3>
-<p>You should provide these structs to VaseR before any vase_renderer_* include by:
+<p>You should provide these structs to VaseR before any vase_renderer_* include by:<br />
 <pre class='code' lang="C++">
 struct Vec2 { double x,y;};
 struct Color { float r,g,b,a;};
@@ -27,7 +27,7 @@ typedef your_color Color;
 <p>
 The recommended way is to include "vase_renderer_draft1_2.cpp" .<br />
 You should not include "vector_operations.h" or "vertex_array_holder.h" directly. It may break things. They are included by "vase_renderer_draft1_2.cpp".<br />
-To compile "vase_renderer_draft1_2.cpp" separately, you should create an empty cpp file and define/ typedef the structs Vec2 and Color <b>before</b> "vase_renderer_draft1_2.cpp" as these structs are expected to be provided by you.
+To compile "vase_renderer_draft1_2.cpp" separately, you should create an empty cpp file and define/ typedef the structs Vec2 and Color <b>before</b> "vase_renderer_draft1_2.cpp" as these structs are expected to be provided by you.<br />
 example:
 	<pre class='code' lang="C++">//file vase_renderer.cpp
 	struct Vec2 { double x,y;};
@@ -35,7 +35,7 @@ example:
 	#include "vase_renderer_draft1_2.cpp"
 //end of file</pre>
 </p>
-<table style='width:100%;'><!--table of API-->
+<table class='api_table' style='width:100%;'>
 	
 	
 	<tr><td>
@@ -131,13 +131,17 @@ glDisableClientState(GL_VERTEX_ARRAY);
 glDisableClientState(GL_COLOR_ARRAY);</pre>
 	<img src='../sample_images/test1.png' />
 			<h4>Notes</h4>
-Varying color is stable but has some artifacts at degenerated cases.<br />
+Varying color is stable but will cause overdraw at degenerated cases.<br />
 Varying weight is unstable.<br />
+polyline() would "go wild" when a segment is shorter than its own width.<br />
 	</td></tr><!--polyline-->
 	
 </table><!--table of API-->
 
+		<h3>Source code</h3>
+Check out the lastest source at <a href='http://vaserenderer.git.sourceforge.net/git/gitweb.cgi?p=vaserenderer/vaserenderer;a=summary' target='_blank'>sourceforge</a>.
+		
 		<h3>Credit</h3>
 Copyright is held by Chris Tsang, tyt2y3@gmail.com
-	</div>
+	</div> <!--<div id='wrap'>-->
 </body>

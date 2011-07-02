@@ -33,6 +33,6 @@ struct polyline_opt
 	//bool uniform_color;
 	//bool uniform_weight;
 };
-void polyline( Vec2*, Color*, double*, int, polyline_opt*);
+void polyline( const Vec2*, const Color*, const double*, int, polyline_opt*);
 
 #endif

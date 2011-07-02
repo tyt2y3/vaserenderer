@@ -2,7 +2,7 @@ body
 {
 	margin: 0 auto;
 	padding: 0;
-	font: normal normal 13.8pt Palatino, "Palatino Linotype", Georgia, Times,  "Times New Roman", serif;
+	font: normal normal 13.8pt Palatino, "Palatino Linotype", Georgia, Times, "Times New Roman", serif;
 	line-height: 18pt;
 	color: #555;
 	background: #AAA;
@@ -26,7 +26,11 @@ body
 	text-align: center;
 }
 
-code,
+code
+{
+	font: normal normal 11pt Courier New, Courier, monospace;
+}
+
 .code
 {
 	font: normal normal 11pt Courier New, Courier, monospace;
@@ -42,9 +46,9 @@ h1, h2, h3, h4, h5, h6
 h1 { font-size: 26pt; padding: 0 0 0 0;}
 h2 { font-size: 24pt; padding: 0 0 0 0px;}
 h3 { font-size: 22pt; padding: 0 0 0 20px;}
-h4 { font-size: 20pt; line-height: 36px; padding: 0 0 0 100px;}
-h5 { font-size: 14pt; line-height: 27px; padding: 0 0 0 120px;}
-h6 { font-size: 12pt; line-height: 24px; font-weight: bold; color: #999; padding: 0 0 0 160px;}
+h4 { font-size: 20pt; padding: 0 0 0 100px;}
+h5 { font-size: 14pt; padding: 0 0 0 120px;}
+h6 { font-size: 12pt; font-weight: bold; color: #999; padding: 0 0 0 160px;}
 
 a
 {
@@ -52,9 +56,7 @@ a
 	text-decoration: none;
 	outline: 0;
 }
-
 a:hover { color: #dabc83; }
-
 a img { border: 0; }
 
 blockquote, q { quotes: none; }
