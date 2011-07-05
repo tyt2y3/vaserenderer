@@ -551,7 +551,7 @@ static int triangle_knife_cut( const Point& kn1, const Point& kn2, const Point& 
 			points_cut_away = 2;
 		}
 		
-		/*if ( (0.0 <= kne1 && kne1 <= 1.0) ||
+		if ( (0.0 <= kne1 && kne1 <= 1.0) ||
 		     (0.0 <= kne2 && kne2 <= 1.0) )
 		{	//highlight the wound
 			glBegin(GL_LINE_STRIP);
@@ -569,7 +569,7 @@ static int triangle_knife_cut( const Point& kn1, const Point& kn2, const Point& 
 				glVertex2f(ST.T1[3].x,ST.T1[3].y);
 				glVertex2f(ST.T1[1].x,ST.T1[1].y);
 			glEnd();
-		}*/
+		}
 	}
 	
 	return points_cut_away;
@@ -2112,6 +2112,9 @@ public:
 		move(1);
 	}
 	
+	int get_size() const
+		{ return size;}
+	
 	int get_i( int i) const //get valid index relative to current
 	{
 		int des = cur + i%size;
@@ -2166,6 +2169,11 @@ void polyline(
 	}
 	
 	circular_array<_st_anchor> C_A(2);
+	for ( int j=0; j<C_A.get_size(); j++)
+	{
+		C_A[j].SL[1].degenR=false;
+	}
+	
 	for ( int i=1; i<size_of_P-1; i++)
 	{
 		_st_anchor& AC_cur = C_A[0];
@@ -2188,29 +2196,40 @@ void polyline(
 		
 		k++; anchor( AC_cur,options, i==1,i==size_of_P-2);
 		
-		/*{	_st_polyline* SL = AC_las.SL;
-			if ( SL[1].degenR && SL[1].pre_full)
+		{	//handle overlapping between anchors
+			bool degen_las = AC_las.SL[1].degenR && AC_las.SL[1].pre_full;
+			bool degen_cur = AC_cur.SL[1].degenR && ! AC_cur.SL[1].pre_full;
+			
+			Point P1,P2,P3,P4;
+			Color C1,C2,C3,C4;
+			vertex_array_holder* target = 0;
+			
+			if ( degen_las)
 			{
+				_st_polyline* SL = AC_las.SL;
 				Point P_0 = AC_las.P[0];
 				Point P_1 = AC_las.P[1];
 				
-				Point P1,P2,P3,P4;
-				Color C1,C2,C3,C4;
-				
 				P1 = P_0+SL[0].T+SL[0].R;
 				P2 = P_0-SL[0].T;
-				P3 = P_1+SL[0].T+SL[0].R;
-				P4 = SL[1].PT;
+				P3 = P_1+SL[1].T1+SL[1].R1;
+				P4 = P_1+SL[1].T; //P4 = SL[1].PT;
 					C1 = AC_las.C[0];
 					C2 = AC_las.C[0];
 					C3 = AC_las.C[1];
 					C4 = AC_las.C[1];
-				
+					
 				//~ 1--2 [P_0]
 				//~ |  |
 				//~ |  |
-				//~ 3--4 [P_1]
-				             // kn|kn|...
+				//~ 3  4 [P_1]
+				
+				target = &AC_cur.vah;
+			}
+			
+			if ( target)
+			{
+					     // kn|kn|...    (view each knife vertically)
 				Point kn0[] = { P1,P2,P3,P4};
 				Point kn1[] = { P2,P4,P1,P3};
 				Point kn2[] = { P4,P3,P2,P1};
@@ -2220,22 +2239,27 @@ void polyline(
 				vertex_array_holder vah_out;
 				vah_out.set_gl_draw_mode(GL_TRIANGLES);
 				
-				vah_N_knife_cut( AC_cur.vah, vah_out,
+				vah_N_knife_cut( *target, vah_out,
 						kn0,kn1,kn2,
-						0,0,
+						kC0,kC1,
 						4);
 				
 				vah_out.draw();
-				AC_cur.vah.clear();
+				target->clear();
 			}
-		}*/
+		}
 		
 		mid_l = mid_n;
 		c_l = c_n;
 		w_l = w_n;
 		
-		AC_cur.vah.draw();
-		AC_cur.vah.clear();
+		//AC_las.vah.draw();
+		//AC_las.vah.clear();
+		//if ( i==size_of_P-2)
+		{
+			AC_cur.vah.draw();
+			AC_cur.vah.clear();
+		}
 		
 		C_A.move(1);
 	}
