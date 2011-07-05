@@ -137,6 +137,11 @@ public:
 	{
 		return !is_zero();
 	}
+	static bool intersecting( const Point& A, const Point& B,
+		const Point& C, const Point& D)
+	{	//return true if AB intersects CD
+		return signed_area(A,B,C)>0 != signed_area(A,B,D)>0;
+	}
 	
 	//operations require 2 input points
 	static double distance_squared( const Point& A, const Point& B)

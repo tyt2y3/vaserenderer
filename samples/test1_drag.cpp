@@ -15,6 +15,7 @@
 
 struct Vec2 { double x,y;};
 struct Color { float r,g,b,a;};
+#define VASE_RENDERER_DEBUG
 #include "../include/vase_renderer_draft1_2.cpp"
 
 void test_draw();
@@ -159,7 +160,7 @@ void make_form()
 	weight->type(FL_HOR_SLIDER);
 	feathering = new Fl_Value_Slider(400,40,200,20,"feathering");
 	feathering->type(FL_HOR_SLIDER);
-	weight->bounds(0.01,20.0);
+	weight->bounds(0.02,20.0);
 	feathering->bounds(1.0,10.0);
 	weight->callback(drag_cb);
 	feathering->callback(drag_cb);

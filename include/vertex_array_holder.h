@@ -28,6 +28,10 @@ public:
 		return count;
 	}
 	
+	void clear()
+	{
+		count = 0;
+	}
 	void move( int a, int b) //move b into a
 	{
 		vert[a*2]   = vert[b*2];
@@ -50,19 +54,18 @@ public:
 	}
 	
 	int draw_and_flush()
-	{	
+	{
 		int& i = count;
-		int cur = 0;
 		draw();
 		switch( glmode)
 		{
 			case GL_POINTS:
-				//do nothing
+				i=0;
 			break;
 			
 			case GL_LINES:
 				if ( i%2 == 0) {
-					//do nothing
+					i=0;
 				} else {
 					goto copy_the_last_point;
 				}
@@ -70,7 +73,7 @@ public:
 			
 			case GL_TRIANGLES:
 				if ( i%3 == 0) {
-					//do nothing
+					i=0;
 				} else if ( i%3 == 1) {
 					goto copy_the_last_point;
 				} else {
@@ -82,7 +85,6 @@ public:
 			//for line loop it is not correct
 			copy_the_last_point:
 				move(0,MAX_VERT-1);
-				cur=0;
 				i=1;
 			break;
 			
@@ -90,7 +92,6 @@ public:
 			copy_the_last_2_points:
 				move(0,MAX_VERT-2);
 				move(1,MAX_VERT-1);
-				cur=1;
 				i=2;
 			break;
 			
@@ -98,7 +99,6 @@ public:
 				//retain the first point,
 				// and copy the last point
 				move(1,MAX_VERT-1);
-				cur=1;
 				i=2;
 			break;
 			
@@ -115,12 +115,15 @@ public:
 	
 	int push( const Point& P, const Color& cc, bool transparent=false)
 	{
-		//if ( P.x==0 && P.y==0)
-			//printf("who pushed P(0,0)?\n");
-		
 		int& i = count;
-		int cur = count;
+		int cur;
 		
+		if ( i+1 == MAX_VERT)
+		{	//when the internal array is full
+			draw_and_flush();
+		}
+		
+		cur = i;
 		vert[i*2]  = P.x;
 		vert[i*2+1]= P.y;
 		
@@ -133,10 +136,6 @@ public:
 			color[i*4+3]= cc.a;
 		
 		i++;
-		if ( i == MAX_VERT) //when the internal array is full
-		{			//draw and flush
-			cur = draw_and_flush();
-		}
 		
 		if ( jumping)
 		{
@@ -178,7 +177,7 @@ public:
 			}
 			else
 			{
-				printf( "vertex_array_holder:push: buffer not large enough to push another vah.\n");
+				DEBUG( "vertex_array_holder:push: buffer not large enough to push another vah.\n");
 			}
 		}
 		else if ( glmode == GL_TRIANGLES &&
@@ -205,12 +204,12 @@ public:
 			}
 			else
 			{
-				printf( "vertex_array_holder:push: buffer not large enough to push another vah.\n");
+				DEBUG( "vertex_array_holder:push: buffer not large enough to push another vah.\n");
 			}
 		}
 		else
 		{
-			printf( "vertex_array_holder:push: unknown type\n");
+			DEBUG( "vertex_array_holder:push: unknown type\n");
 		}
 	}
 	

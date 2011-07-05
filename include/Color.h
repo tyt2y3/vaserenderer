@@ -14,6 +14,11 @@ float& Color_get( Color& C, int index)
 	}
 }
 
+bool Color_valid_range(float t)
+{
+	return t>=0.0f && t<=1.0f;
+}
+
 Color Color_between( const Color& A, const Color& B, float t=0.5f)
 {
 	if ( t<0.0f) t = 0.0f;
