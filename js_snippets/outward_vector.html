@@ -6,8 +6,10 @@
 
 <div class='main_canvas' id='canvas1'></div>
 <div class='side_pane'>
-Blue vectors are "outward" perpendicular vectors.<br />
-Red ones are outward averaged vectors.<br />
+Blue vectors are outward perpendicular vectors.<br />
+Red ones are outward bisecting vectors.<br />
+This method only works for these 2 special case: outward perpendicular
+and outward bisecting vectors.
 Drag control points to observe.
 </div>
 
@@ -61,6 +63,11 @@ function choose_outward(V, b,c)
 	}
 	return V;
 }
+function signed_area(p1,p2,p3)
+{
+	var D = (p2.x-p1.x)*(p3.y-p1.y)-(p3.x-p1.x)*(p2.y-p1.y);
+	return D;
+}
 
 function make_perpen_vector( px,py)
 {
@@ -81,7 +88,7 @@ function make_perpen_vector( px,py)
 		L.y=py[j1]-py[j0];
 		V.x=-L.y; //perpendicular vector
 		V.y=L.x;
-		V=normalize(V);
+		/*V=normalize(V);
 		V.x*=30; //make it longer for observation
 		V.y*=30;
 		if ( i==0) {
@@ -90,7 +97,8 @@ function make_perpen_vector( px,py)
 			V=choose_outward( V,{x:px[j1],y:py[j1]},{x:px[j1-1],y:py[j1-1]} );
 		} else {
 			V=choose_outward( V,{x:px[j0],y:py[j0]},{x:px[j0+1],y:py[j0+1]} );
-		}
+		}*/
+		if ( 
 		TP.drawarrow( px[j0],py[j0],px[j0]+V.x,py[j0]+V.y,null,3);
 	}
 }

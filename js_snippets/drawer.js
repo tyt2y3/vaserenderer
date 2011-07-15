@@ -39,7 +39,7 @@ function drawer()
 		T.moveTo(ax,ay, C);
 		T.lineTo(bx,by, C);
 		//
-		var R=0.9; var K=0.02;
+		var R=0.9; var K=0.04;
 		var vx=ay-by;
 		var vy=bx-ax;
 		var acx=vy*R+ax;

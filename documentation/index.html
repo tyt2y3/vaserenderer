@@ -1,85 +1,135 @@
 <!-- steps to put on blogger:
 -remove head and body tag
--delete the id 'wrap' for that div
--delete the id 'sitename' for that div
--replace all image links to http://vaserenderer.sourceforge.net/blog/vaserendererdraft12
+-replace all image links:
+--replace src='../sample_images/ by src='http://vaserenderer.sourceforge.net/blog/vaserendererdraft12/
+-replace href='line_segment/line_segment.html' by href='http://artgrammer.blogspot.com/2011/05/drawing-nearly-perfect-2d-line-segments.html'
+-replace href='polyline/polyline.html' by ?
 -->
 
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <head>
 	<link rel="stylesheet" type="text/css" href="style.css" />
 </head>
 <body>
-	<div id='wrap'>
-		<div id='sitename'>
-			<h1>Vase Renderer</h1>
+	<div class='vaser_wrap'>
+		<div class='article_name'>
+			<h1>Vase Renderer<img src='../sample_images/V.png' height=80 /></h1>
 			first draft, version 0.2 (draft1_2)
 		</div>
 		<h2>About</h2>
-<p>Vase renderer(VaseR) is a 2D graphics renderer built on top of OpenGL. Unlike most graphics libraries which are based on <code>SetPixel()</code>, VaseR is based on <code>glDrawArrays()</code>. That means, VaseR takes the advantage of GPU rasterization.</p>
+<p>Vase renderer(VaseR) is a 2D graphics renderer built on top of OpenGL. Unlike most graphics libraries
+ which are based on <code>SetPixel()</code>, VaseR is based on <code>glDrawArrays()</code>.
+ That means, VaseR takes the advantage of GPU rasterization. Another unique feature of VaseR is rendering
+ with premium quality anti- aliasing using "fade polygons", as mentioned in
+ <a href='line_segment/line_segment.html' target="_blank">
+this article</a>.
+</p>
 		<h2>Documentation</h2>
 			<h3>API design</h3>
-<p>VaseR is a renderer and merely translates input vectors into gl calls. VaseR has no states, only a set of functions. Thus you need to pass many parameters to a VaseR function on each call. And these parameters are stored in structures like WinAPI does. Normally if you do not know what options to set, just put <code>0</code> at the parameter <code>polyline_opt*</code>. VaseR ensures empty parameter <code>polyline_opt* options=0</code> <b>or</b> empty structure <code>polyline_opt opt={0};</code> are default options and would not cause any error.</p>
+<p>VaseR is a renderer and merely translates input vectors into gl calls. VaseR has no states, only a set
+ of functions. Thus you need to pass many parameters to a VaseR function on each call. And these
+ parameters are stored in structures like WinAPI does. Normally if you do not know what options to set,
+ just put <code>0</code> at the parameter <code>polyline_opt*</code>. VaseR ensures empty parameter
+ <code>polyline_opt* options=0</code> <b>or</b> empty structure <code>polyline_opt opt={0};</code>
+ are default options and would not cause any error.
+</p>
 			<h3>Usage</h3>
 <p>You should provide these structs to VaseR before any vase_renderer_* include by:<br />
-<pre class='code' lang="C++">
+<pre lang="C++">
 struct Vec2 { double x,y;};
 struct Color { float r,g,b,a;};
 <b>or</b>
 typedef your_vec2 Vec2;
 typedef your_color Color;
 
-#include "../include/vase_renderer_draft1_2.cpp"
-</pre>
+#include "../include/vase_renderer_draft1_2.cpp"</pre>
 </p>
+
 <p>
 The recommended way is to include "vase_renderer_draft1_2.cpp" .<br />
-You should not include "vector_operations.h" or "vertex_array_holder.h" directly. It may break things. They are included by "vase_renderer_draft1_2.cpp".<br />
-To compile "vase_renderer_draft1_2.cpp" separately, you should create an empty cpp file and define/ typedef the structs Vec2 and Color <b>before</b> "vase_renderer_draft1_2.cpp" as these structs are expected to be provided by you.<br />
+You should not include "vector_operations.h" or "vertex_array_holder.h" directly. It may break things.
+ They are included by "vase_renderer_draft1_2.cpp".<br />
+To compile "vase_renderer_draft1_2.cpp" separately, you should create an empty cpp file and define/
+ typedef the structs Vec2 and Color <b>before</b> "vase_renderer_draft1_2.cpp" as these structs are
+ expected to be provided by you.<br />
 example:
-	<pre class='code' lang="C++">//file vase_renderer.cpp
+	<pre lang="C++">//file vase_renderer.cpp
 	struct Vec2 { double x,y;};
 	struct Color { float r,g,b,a;};
 	#include "vase_renderer_draft1_2.cpp"
 //end of file</pre>
 </p>
+
 <table class='api_table' style='width:100%;'>
-	
 	
 	<tr><td>
 	<h3>polyline()</h3>
-		<pre class='code' lang="C++">void polyline(
-	Vec2* P,       //pointer to array of point of a polyline
+	For technical details about polyline() <a href='' target='_blank'>look at here</a>.
+		<pre lang="C++">void polyline(
+	Vec2* P,       //array of point of a polyline
 	Color* C,      //array of color
 	double* weight,//array of weight
-	int size_of_P, //size of the buffer P
-	polyline_opt* options) //extra options</pre>
+	int size_of_P, //size of the buffers
+	polyline_opt* options); //extra options</pre>
+	All arrays must be of the same size otherwise memory error will occur.
 		<h4>options</h4>
-		<pre class='code' lang="C++">struct polyline_opt
+		<pre lang="C++">struct polyline_opt
 {	//set the whole structure to 0 will give default options
 	char joint;
 		#define LJ_miter 0
 		#define LJ_bevel 1
 		#define LJ_round 2
 	char cap;
+		#define LC_butt   0
+		#define LC_round  1
+		#define LC_square 2
+		#define LC_rect   3 //unique to vase renderer
 	bool feather;
 		double feathering;
 		bool no_feather_at_cap;
 		bool no_feather_at_core;
 };</pre>
 	
-	<code>	<table border='1' width='600'>
-			<tr><td colspan='10'>opt.joint =</td></tr>
+	<code>polyline_opt opt={0}; //consider this structure: <br /><br />
+		<table>
+			<caption>opt.joint</caption>
 			<tr>	<td>LJ_miter<img src='../sample_images/polyline_joint_LJ_miter.png' /></td>
 				<td>LJ_bevel<img src='../sample_images/polyline_joint_LJ_bevel.png' /></td>
 				<td>LJ_round<img src='../sample_images/polyline_joint_LJ_round.png' /></td>
 			</tr>
 		</table>
 		<br />
-		<table border='1' width='600'>
-			<tr><td colspan='10'>opt.cap (not used currently)</td></tr>
+		<table>
+			<caption>opt.cap</caption>
+			<tr>	<td>LC_butt  <img src='../sample_images/polyline_cap_LC_butt.png' /></td>
+				<td>LC_round <img src='../sample_images/polyline_cap_LC_round.png' /></td>
+				<td>LC_square<img src='../sample_images/polyline_cap_LC_square.png' /></td>
+			</tr>
+			<tr>
+				<td colspan=10>LC_rect<br />
+				LC_rect is related to feathering. Unlike the above 3 common cap types, LC_rect is unique
+		to VaseR. LC_rect puts the fade polygon out of the end points of a 
+		polyline.<br />When feather=false, LC_rect looks very close to LC_butt. The difference is only obvious
+		 at high value of feathering.
+				</td>
+			</tr>
+			<tr>
+				<td>LC_rect (with high value of feathering)<img src='../sample_images/polyline_cap_LC_rect.png' /></td>
+				<td>LC_butt (with high value of feathering)<img src='../sample_images/polyline_cap_LC_butt_high_feathering.png' /></td>
+			</tr>
 		</table>
 		<br />
-		<table border='1' width='600'>
+		<table>
+			<caption>opt.feather, opt.feathering, opt.no_feather_at_cap, opt.no_feather_at_core</caption>
+		<tr>		<td> feathering is a multiplier to the magnitude of the fade polygon.
+		do not set it to lower than 1.0 .<br />
+		feathering is unique to VaseR. A feathered polyline with round cap and round joint can mimic
+		the feel of an air brush stroke.
+				</td>
+				<td><img src='../sample_images/polyline_mimic_airbrush.png'/></td>
+		</tr>
+		</table>
+		<table>
 			<tr>	
 				<td>opt.feather = false;<br /><img src='../sample_images/polyline_joint_LJ_miter.png' /></td>
 				
@@ -102,11 +152,16 @@ example:
 				<img src='../sample_images/polyline_no_feather_at_core.png' />
 				</td>
 			</tr>
+			<tr>	<td colspan=10>
+				remarks: no_feather_at_cap only affects cap type LC_butt,
+				LC_square and LC_rect .
+				</td>
+			</tr>
 		</table>
 		<br />
 	</code>
 		<h4>Usage</h4>
-		<pre class='code' lang="C++">
+		<pre lang="C++">
 void sample_polyline()
 {
 	int size_of_AP=4;
@@ -140,16 +195,27 @@ glDisableClientState(GL_COLOR_ARRAY);</pre>
 			<h4>Notes</h4>
 Varying color is stable but will cause overdraw at degenerated cases.<br />
 Varying weight is unstable.<br />
-polyline() would "go wild" when a segment is shorter than its own width.<br />
+polyline() will "go wild" when a segment is shorter than its own width.<br />
+
+			<h4>Further work</h4>
+After solving the above 3 mentioned problems,<br />
+can provide the choice between color blending profiles, possibly 'hard' and 'soft'.
 	</td></tr><!--polyline-->
-	
+
 </table><!--table of API-->
 
 		<h3>Source code</h3>
-Check out the lastest source at <a href='http://vaserenderer.git.sourceforge.net/git/gitweb.cgi?p=vaserenderer/vaserenderer;a=summary' target='_blank'>sourceforge</a>.
-		
-		<h3>Credit</h3>
-Copyright is held by Chris Tsang, tyt2y3@gmail.com<br />
-I have not chosen the license yet. At this version "Vase Renderer first draft, version 0.2 (draft1_2)", do whatever you want with the code, even in a commercial application. If you used the code, I just hope you to cite my name and this project. Any comment is also appreciated.
+Development package with documentation, source code, sample images and sample programs is at
+ <a href='http://vaserenderer.git.sourceforge.net/git/gitweb.cgi?p=vaserenderer/vaserenderer;a=summary' target='_blank'>sourceforge</a>.
+
+		<h3>Credit and license</h3>
+<p>Current maintainer and copyright holder is Chris Tsang, tyt2y3@gmail.com<br />
+Comments, discussions, and contributions are greatly appreciated.
+</p>
+<p>
+The license terms at this version "Vase Renderer first draft, version 0.2 (draft1_2)" are:<br />
+If you used Vase Renderer (abbreviated as VaseR )in your program or produced derived work of VaseR, you should include a notice along with the distribution of your work describing how you used VaseR.<br />
+No extra restriction on commercial use. No warranty provided.
+</p>
 	</div> <!--<div id='wrap'>-->
 </body>

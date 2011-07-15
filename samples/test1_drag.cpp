@@ -16,6 +16,7 @@
 struct Vec2 { double x,y;};
 struct Color { float r,g,b,a;};
 #define VASE_RENDERER_DEBUG
+//#define VASE_RENDERER_EXPER //if defined, enable experimental, unfinished feature
 #include "../include/vase_renderer_draft1_2.cpp"
 
 void test_draw();
@@ -32,9 +33,10 @@ Gl_Window* gl_wnd;
 Fl_Slider *weight, *feathering;
 Fl_Button *feather, *no_feather_at_cap, *no_feather_at_core;
 Fl_Button *jt_miter, *jt_bevel, *jt_round;
+Fl_Button *jc_butt, *jc_round, *jc_square, *jc_rect;
 Fl_Button *np2, *np3, *np4, *np5, *np6;
 Fl_Button *colored, *alphaed, *weighted;
-//anchor only//Fl_Button *inward_first, *cap_first, *cap_last;
+Fl_Button *skeleton, *triangulate;
 
 void line_update()
 {
@@ -65,6 +67,15 @@ void line_update()
 		{
 			Aw[i] = weight->value();
 		}
+	}
+}
+void line_update_skeleton()
+{
+	Color red = {1,1,1, 1};
+	for ( int i=0; i<size_of_AP; i++)
+	{
+		AC[i] = red;
+		Aw[i] = 1.0;
 	}
 }
 void line_init( int N)
@@ -125,6 +136,19 @@ char get_joint_type()
 	else
 		return 0;
 }
+char get_cap_type()
+{
+	if ( jc_butt->value())
+		return LC_butt;
+	else if ( jc_round->value())
+		return LC_round;
+	else if ( jc_square->value())
+		return LC_square;
+	else if ( jc_rect->value())
+		return LC_rect;
+	else
+		return 0;
+}
 void enable_glstates()
 {
 	glEnableClientState(GL_VERTEX_ARRAY);
@@ -160,7 +184,7 @@ void make_form()
 	weight->type(FL_HOR_SLIDER);
 	feathering = new Fl_Value_Slider(400,40,200,20,"feathering");
 	feathering->type(FL_HOR_SLIDER);
-	weight->bounds(0.02,20.0);
+	weight->bounds(0.02,30.0);
 	feathering->bounds(1.0,10.0);
 	weight->callback(drag_cb);
 	feathering->callback(drag_cb);
@@ -181,11 +205,11 @@ void make_form()
 	
 	//joint type
 	{
-	Fl_Group* o = new Fl_Group(400,130,200,100);
+	Fl_Group* o = new Fl_Group(400,130,200,30);
 		new Fl_Box(400,130,80,15,"joint type:");
-		jt_miter = new Fl_Radio_Light_Button(440,145,80,15,"miter");
-		jt_bevel = new Fl_Radio_Light_Button(520,145,80,15,"bevel");
-		jt_round = new Fl_Radio_Light_Button(440,160,80,15,"round");
+		jt_miter = new Fl_Radio_Light_Button(420,145,60,15,"miter");
+		jt_bevel = new Fl_Radio_Light_Button(480,145,60,15,"bevel");
+		jt_round = new Fl_Radio_Light_Button(540,145,60,15,"round");
 	o->end();
 	jt_miter->value(1);
 	jt_bevel->value(0);
@@ -193,6 +217,22 @@ void make_form()
 	jt_miter->callback(drag_cb);
 	jt_bevel->callback(drag_cb);
 	jt_round->callback(drag_cb);
+	}
+	
+	//cap type
+	{
+	Fl_Group* o = new Fl_Group(400,160,200,30);
+		new Fl_Box(400,160,80,15,"cap type:");
+		jc_butt   = new Fl_Radio_Light_Button(420,175,40,15,"butt");
+		jc_round  = new Fl_Radio_Light_Button(460,175,50,15,"round");
+		jc_square = new Fl_Radio_Light_Button(510,175,50,15,"square");
+		jc_rect   = new Fl_Radio_Light_Button(560,175,40,15,"rect");
+	o->end();
+	jc_butt   ->value(1);
+	jc_butt   ->callback(drag_cb);
+	jc_round  ->callback(drag_cb);
+	jc_square ->callback(drag_cb);
+	jc_rect   ->callback(drag_cb);
 	}
 	
 	//number of points
@@ -208,14 +248,20 @@ void make_form()
 	np6->callback(np_cb);
 	
 	//test options
-	colored = new Fl_Light_Button(400,250,80,15,"colored");
+	colored = new Fl_Light_Button(400,250,60,15,"colored");
 	colored->callback(drag_cb);
 	colored->value(1);
-	alphaed = new Fl_Light_Button(480,250,80,15,"alpha-ed");
+	alphaed = new Fl_Light_Button(460,250,70,15,"alpha-ed");
 	alphaed->callback(drag_cb);
 	alphaed->value(1);
-	weighted = new Fl_Light_Button(420,265,80,15,"weighted");
+	weighted = new Fl_Light_Button(530,250,70,15,"weighted");
 	weighted->callback(drag_cb);
+	skeleton = new Fl_Light_Button(400,265,80,15,"skeleton");
+	skeleton->value(0);
+	skeleton->callback(drag_cb);
+	triangulate = new Fl_Light_Button(480,265,120,15,"triangulation");
+	triangulate->value(0);
+	triangulate->callback(drag_cb);
 	
 	//anchor only
 	/*cap_first = new Fl_Light_Button(400,180,80,15,"cap_first");
@@ -241,8 +287,13 @@ void test_draw()
 	opt.no_feather_at_cap = no_feather_at_cap->value();
 	opt.no_feather_at_core = no_feather_at_core->value();
 	opt.joint = get_joint_type();
+	opt.cap   = get_cap_type();
 	
-	polyline( AP, AC, Aw, size_of_AP, &opt);
+	polyline( AP, AC, Aw, size_of_AP, &opt, triangulate->value());
+	if ( skeleton->value()) {
+		line_update_skeleton();
+		polyline( AP, AC, Aw, size_of_AP, 0);
+	}
 	
 	disable_glstates();
 }

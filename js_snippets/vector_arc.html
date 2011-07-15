@@ -6,9 +6,11 @@
 
 <div class='main_canvas' id='canvas1'></div>
 <div class='side_pane'>
+<button onclick='tooglebasic()'>toogle basic</button><br />
 <textarea id='txt'></textarea><br />
-note that we always draw the arc from red to blue.<br />
+Note that we always draw the arc from red to blue.<br />
 Drag control points to observe.<br />
+Source code in contained in this HTML file.
 </div>
 
 <script>
@@ -17,6 +19,22 @@ DG = new dragger(TP,'canvas1');
 TP.px=[400,400-34.2,400+86.6];
 TP.py=[300,300-94.0,300-50.0];
 
+var basic=0;
+function tooglebasic()
+{
+	basic = basic==0?1:0;
+	TP.redraw();
+}
+window.onload = function()
+{
+	var location = window.location.href;
+	if (location.match(/basic=1/))
+	{
+		basic=1;
+		TP.redraw();
+	}
+}
+
 TP.redraw=function()
 {
 	rl.clear();
@@ -24,7 +42,10 @@ TP.redraw=function()
 	var P={x:TP.px[0],y:TP.py[0]};
 	var A={x:TP.px[1]-TP.px[0], y:TP.py[1]-TP.py[0]};
 	var B={x:TP.px[2]-TP.px[0], y:TP.py[2]-TP.py[0]};
-	vector_to_arc( P,A,B);
+	if ( basic==0)
+		vectors_to_arc( P,A,B);
+	else
+		basic_vectors_arc( P,A,B,60);
 	TP.drawpath(rl);
 }
 function roundc( c, d)
@@ -34,12 +55,15 @@ function roundc( c, d)
 	c/=Math.pow(10,d);
 	return c;
 }
-function vector_to_arc( P, A,B,r)
-{
+
+function vectors_to_arc( P, A,B)
+{	//proper inner arc
 	TP.drawarrow( P.x,P.y,P.x+A.x,P.y+A.y, null,1);
 	TP.drawarrow( P.x,P.y,P.x+B.x,P.y+B.y, null,3);
 	TP.drawpoint( P.x+A.x,P.y+A.y, 4,0);
 	TP.drawpoint( P.x+B.x,P.y+B.y, 4,0);
+	rl.text(P.x+50,P.y,'proper inner arc');
+	
 	var AL=Math.sqrt(A.x*A.x+A.y*A.y);
 	var BL=Math.sqrt(B.x*B.x+B.y*B.y);
 	A.x/=AL;
@@ -52,8 +76,8 @@ function vector_to_arc( P, A,B,r)
 	inner_arc( P,(AL+BL)/2,Math.PI/18, angle1,angle2);
 }
 function inner_arc( P,r,dangle, angle1,angle2)
-{
-	incremental=true;
+{	//proper inner arc
+	var incremental=true;
 	
 	if ( angle2 > angle1)
 	{
@@ -102,6 +126,51 @@ function inner_arc( P,r,dangle, angle1,angle2)
 				null,4);
 	}
 }
+
+function basic_vectors_arc( P, //origin
+         A, B,
+         r) //radius
+{	//this is the demo of failed code
+	TP.drawarrow( P.x,P.y,P.x+A.x,P.y+A.y, null,1);
+	TP.drawarrow( P.x,P.y,P.x+B.x,P.y+B.y, null,3);
+	TP.drawpoint( P.x+A.x,P.y+A.y, 4,0);
+	TP.drawpoint( P.x+B.x,P.y+B.y, 4,0);
+	rl.text(P.x+30,P.y,'basic');
+	
+	var AL=Math.sqrt(A.x*A.x+A.y*A.y);
+	var BL=Math.sqrt(B.x*B.x+B.y*B.y);
+	A.x/=AL;
+	B.x/=BL;
+	
+	var angle1=Math.acos(A.x);    var angle2=Math.acos(B.x);
+
+	basic_arc( P,r,Math.PI/18, angle1,angle2);
+}
+function basic_arc( P, //origin
+         r,      //radius
+         dangle, //angle for each step
+         angle1, angle2)
+{	//this is the demo of failed code
+	var incremental=true;
+	if ( angle1>angle2) {
+		incremental = false; //means decremental
+	}
+	
+	if ( incremental) {
+		for ( var a=angle1; a < angle2; a+=dangle)
+		{
+			var x=Math.cos(a);    var y=Math.sin(a);
+			TP.drawpoint( P.x+x*r,P.y-y*r); //the current point on anchor
+		}
+	} else {
+		for ( var a=angle1; a > angle2; a-=dangle)
+		{
+			var x=Math.cos(a);    var y=Math.sin(a);
+			TP.drawpoint( P.x+x*r,P.y-y*r);
+		}
+	}
+}
+
 
 rl = Raphael('canvas1');
 TP.redraw();

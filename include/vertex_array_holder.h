@@ -255,8 +255,11 @@ public:
 	}
 	void jump() //to make a jump in triangle strip by degenerated triangles
 	{
-		repeat_last_push();
-		jumping=true;
+		if ( glmode == GL_TRIANGLE_STRIP)
+		{
+			repeat_last_push();
+			jumping=true;
+		}
 	}
 	
 	void draw() //the only place to call gl functions
