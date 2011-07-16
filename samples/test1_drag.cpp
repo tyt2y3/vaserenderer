@@ -184,7 +184,7 @@ void make_form()
 	weight->type(FL_HOR_SLIDER);
 	feathering = new Fl_Value_Slider(400,40,200,20,"feathering");
 	feathering->type(FL_HOR_SLIDER);
-	weight->bounds(0.02,30.0);
+	weight->bounds(0.02,80.0);
 	feathering->bounds(1.0,10.0);
 	weight->callback(drag_cb);
 	feathering->callback(drag_cb);
