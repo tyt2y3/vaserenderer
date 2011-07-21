@@ -83,7 +83,7 @@ q:after
 }
 
 .api_table table
-{
+{	/*child tables*/
 	width:600px;
 }
 .api_table tr:nth-child(even) {}
@@ -95,5 +95,15 @@ q:after
 .para_tips
 {
 	font-size:11pt;
+}
+.box_tips
+{
+	border: 1px solid #AAA;
+	margin: 0 0 0 80px;
+	overflow: hidden;
+}
+.box_redlight
+{
+	background: #FFE0E0;
 }
 /*end vaser_wrap*/

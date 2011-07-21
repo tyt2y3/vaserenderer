@@ -79,6 +79,19 @@ static void determine_t_r ( double w, double& t, double& R)
 		R *= PPI_correction;
 	}
 }
+static float get_LJ_round_dangle(float t, float r)
+{
+	float dangle;
+	float sum = t+r;
+	if ( sum <= 1.44f+1.08f) //w<=4.0, feathering=1.0
+		dangle = 0.6f/(t+r);
+	else if ( sum <= 3.25f+1.08f) //w<=6.5, feathering=1.0
+		dangle = 2.8f/(t+r);
+	else
+		dangle = 4.2f/(t+r);
+	return dangle;
+}
+
 static void make_T_R_C( const Point& P1, const Point& P2, Point* T, Point* R, Point* C,
 				double w, const polyline_opt& opt,
 				double* rr, double* tt, float* dist,
@@ -336,15 +349,6 @@ static void vectors_to_arc( vertex_array_holder& hold, const Point& P,
 	//DEBUG( "steps=%d ",int((angle2-angle1)/den*r));
 
 	inner_arc( hold, P, C,C2, dangle,angle1,angle2, r,r2, ignor_ends, apparent_P);
-}
-inline static float get_LJ_round_dangle(float t, float r)
-{
-	float dangle;
-	if ( t<=3.25f) //w<=6.5
-		dangle = 2.8f/(t+r);
-	else
-		dangle = 4.2f/(t+r);
-	return dangle;
 }
 
 #ifdef VASE_RENDERER_DEBUG

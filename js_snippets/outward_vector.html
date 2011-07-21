@@ -88,7 +88,8 @@ function make_perpen_vector( px,py)
 		L.y=py[j1]-py[j0];
 		V.x=-L.y; //perpendicular vector
 		V.y=L.x;
-		/*V=normalize(V);
+		
+		V=normalize(V);
 		V.x*=30; //make it longer for observation
 		V.y*=30;
 		if ( i==0) {
@@ -97,8 +98,8 @@ function make_perpen_vector( px,py)
 			V=choose_outward( V,{x:px[j1],y:py[j1]},{x:px[j1-1],y:py[j1-1]} );
 		} else {
 			V=choose_outward( V,{x:px[j0],y:py[j0]},{x:px[j0+1],y:py[j0+1]} );
-		}*/
-		if ( 
+		}
+		
 		TP.drawarrow( px[j0],py[j0],px[j0]+V.x,py[j0]+V.y,null,3);
 	}
 }

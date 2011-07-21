@@ -17,27 +17,117 @@
 	<div class='vaser_wrap'>
 		<div class='article_name'>
 			<h1>Vase Renderer<img src='../sample_images/V.png' height=80 /></h1>
-			first draft, version 0.2 (VaseR draft1_2)
+			first draft, version 0.25 (VaseR draft1_2)
 		</div>
 		<h2>About</h2>
 <p>Vase renderer(VaseR) is a 2D graphics renderer built on top of OpenGL. Unlike most graphics libraries
  which are based on <code>SetPixel()</code>, VaseR is based on <code>glDrawArrays()</code>.
  That means, VaseR takes the advantage of GPU rasterization. Another unique feature of VaseR is rendering
- with premium quality anti- aliasing using "fade polygons", as mentioned in
+ with premium quality anti- aliasing using 'fade polygons', as mentioned in
  <a href='http://artgrammer.blogspot.com/2011/05/drawing-nearly-perfect-2d-line-segments.html' target="_blank">
 this article</a>.
 </p>
-		<h2>Documentation</h2>
-			<h3>API design</h3>
-<p>VaseR is a renderer and merely translates input vectors into gl calls. VaseR has no states, only a set
- of functions. Thus you need to pass many parameters to a VaseR function on each call. And these
- parameters are stored in structures like WinAPI does. Normally if you do not know what options to set,
- just put <code>0</code> at the parameter <code>polyline_opt*</code>. VaseR ensures empty parameter
- <code>polyline_opt* options=0</code> <b>or</b> empty structure <code>polyline_opt opt={0};</code>
- are default options and would not cause any error.
+
+
+		<h2>Getting started</h2>
+<p>To properly use VaseR, you need to understand what role does VaseR play in the rendering pipeline. Suppose your application has a 2D rendering pipeline like:
 </p>
+<table>
+<tr>	<td>model transformation</td></tr>
+<tr>	<td>clippings</td></tr>
+<tr>	<td>view transformation</td></tr>
+
+<tr class='box_redlight'>
+	<td>primitives generation<br />
+		i.e.
+		<code>glDrawArrays();</code>
+		<br /><b>and/or</b>
+		<code>glBegin(); glEnd();</code>
+	</td>
+</tr>
+
+<tr>	<td>OpenGL pipeline...</td></tr>
+</table>
+<p>VaseR is a renderer and merely takes care the primitives generation part (highlighted in red). You should set the gl states to meet VaseR's requirements before calling any VaseR function:
+<table class='api_table'>
+	<tr><td>blending</td><td><pre lang="C++">glEnable(GL_BLEND);
+glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);</pre></td>
+	</tr>
+	<tr><td>vertex array <br />client states</td><td><pre lang="C++">glEnableClientState(GL_VERTEX_ARRAY);
+glEnableClientState(GL_COLOR_ARRAY);
+
+glDisableClientState(GL_EDGE_FLAG_ARRAY);
+glDisableClientState(GL_FOG_COORD_ARRAY);
+glDisableClientState(GL_INDEX_ARRAY);
+glDisableClientState(GL_NORMAL_ARRAY);
+glDisableClientState(GL_SECONDARY_COLOR_ARRAY);
+glDisableClientState(GL_TEXTURE_COORD_ARRAY);</pre></td>
+	</tr>
+	<tr><td>other</td><td>gl's default<br />important: no back face culling</td>
+	</tr>
+</table>
+</p>
+
+<div class='box_tips'>
+Beginners' tips: <a onclick='box_tips_switchsize(this)'>hide</a><br />
+How to correctly set gl states for VaseR..
+<p>Suppose you have a helloworld application that only renders a line segment in draw():</p>
+<pre lang="C++">
+void draw()
+{
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
+		glLoadIdentity();
+		glOrtho( 0,context_width,context_height,0,0.0f,100.0f);
+		<b>glLineWidth(2.0);
+		glBegin(GL_LINES);
+			glColor4f(1,0,0.5, 1);
+			glVertex2f(10,100);
+			glColor4f(0.5,0,1, 1);
+			glVertex2f(100,300);
+		glEnd();
+		//other drawings</b>
+	glMatrixMode(GL_PROJECTION);
+	glPopMatrix();
+}</pre>
+extend it into:
+<pre lang="C++">
+void draw()
+{
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
+	
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			glLoadIdentity();
+			glOrtho( 0,context_width,context_height,0,0.0f,100.0f);
+
+			glEnableClientState(GL_VERTEX_ARRAY);
+			glEnableClientState(GL_COLOR_ARRAY);
+				<b>{	Vec2  P1 = {10,100};
+					Vec2  P2 = {100,300};
+					Color C1 = {1,0,0.5, 1};
+					Color C2 = {0.5,0,1, 1};
+					double W1= 2.0;
+					double W2= W1;
+					
+					segment(P1,P2, C1,C2, W1,W2, 0);
+				}
+				//other VaseR calls</b>
+			glDisableClientState(GL_VERTEX_ARRAY);
+			glDisableClientState(GL_COLOR_ARRAY);
+
+			//other drawings with blending
+		glDisable(GL_BLEND); //restore blending options
+		
+		//other drawings without blending
+	glMatrixMode(GL_PROJECTION);
+	glPopMatrix();
+}</pre>
+</div> <!--class='box_tips' -->
+
 			<h3>Usage</h3>
-<p>You should provide these structs to VaseR before any vase_renderer_* include by:<br />
+<p>Provide these structs to VaseR <b>before</b> any vase_renderer_* include by:<br />
 <pre lang="C++">
 struct Vec2 { double x,y;};
 struct Color { float r,g,b,a;};
@@ -48,25 +138,25 @@ typedef your_color Color;
 #include "../include/vase_renderer_draft1_2.cpp"</pre>
 </p>
 
-<p>
-The recommended way is to include "vase_renderer_draft1_2.cpp" .<br />
-You should not include "vector_operations.h" or "vertex_array_holder.h" directly. It may break things.
- They are included by "vase_renderer_draft1_2.cpp".<br />
-To compile "vase_renderer_draft1_2.cpp" separately, you should create an empty cpp file and define/
- typedef the structs Vec2 and Color <b>before</b> "vase_renderer_draft1_2.cpp" as these structs are
- expected to be provided by you.<br />
-example:
-	<pre lang="C++">//file vase_renderer.cpp
+<p>The recommended way is to include "vase_renderer_draft1_2.cpp" .</p>
+<p>You should not include "vector_operations.h" or "vertex_array_holder.h" directly. It may break things. They are included by "vase_renderer_draft1_2.cpp".</p>
+<p>To compile "vase_renderer_draft1_2.cpp" separately, create an empty cpp file to provide the structs:</p>
+<pre lang="C++">//file vase_renderer.cpp
 	struct Vec2 { double x,y;};
 	struct Color { float r,g,b,a;};
 	#include "vase_renderer_draft1_2.cpp"
 //end of file</pre>
+
+
+		<h2>Documentation</h2>
+			<h3>API design</h3>
+<p>VaseR has no states, only a set of functions. Thus you need to pass many parameters to a VaseR function on each call. And these parameters are stored in structures like WinAPI does. Normally if you do not know what options to set, just put <code>0</code> at the parameter <code>polyline_opt*</code>. VaseR ensures empty parameter <code>polyline_opt* options=0</code> <b>and</b> empty structure <code>polyline_opt opt={0};</code> are default options and would not cause any error.
 </p>
 
 <table class='api_table' style='width:100%;'>
 	
 	<tr><td>
-	<h3>polyline()</h3>
+		<h3>polyline()</h3>
 	For technical details about polyline() <a href='http://artgrammer.blogspot.com/2011/07/drawing-polylines-by-tessellation.html' target='_blank'>look at here</a>.
 		<pre lang="C++">void polyline(
 	Vec2* P,       //array of point of a polyline
@@ -164,6 +254,7 @@ example:
 		<br />
 	</code>
 		<h4>Usage</h4>
+	<img src='../sample_images/polyline.png' style='float:right'/>
 		<pre lang="C++">
 void sample_polyline()
 {
@@ -183,18 +274,12 @@ void sample_polyline()
 		Aw[1] = 8.0;
 		Aw[2] = 8.0;
 		Aw[3] = 8.0;
-		
+	
 	polyline_opt opt={0};
 	polyline( AP, AC, Aw, size_of_AP, &opt);
-}
+}</pre>
+example program is at <code>samples/polyline</code> under VaseR package.
 
-glEnableClientState(GL_VERTEX_ARRAY);  //]vertex and color is required by polyline()
-glEnableClientState(GL_COLOR_ARRAY);   //]
-glDisableClientState(GL_NORMAL_ARRAY); //example only, manage your enabled states carefully
-	sample_polyline();
-glDisableClientState(GL_VERTEX_ARRAY);
-glDisableClientState(GL_COLOR_ARRAY);</pre>
-	<img src='../sample_images/test1.png' />
 			<h4>Notes</h4>
 Varying color is stable but will cause overdraw at degenerated cases.<br />
 Varying weight is unstable.<br />
@@ -204,21 +289,132 @@ polyline() will "go wild" when a segment is shorter than its own width.<br />
 After solving the above 3 mentioned problems,<br />
 can provide the choice between color blending profiles, possibly 'hard' and 'soft'.
 	</td></tr><!--polyline-->
+	
+	<tr><td>
+		<h3>segment()</h3>
+		<pre lang="C++">
+void segment(  const Vec2& P1, const Vec2& P2, //coordinates
+        const Color& C1, const Color& C2,      //colors
+        double W1, double W2,                  //weights
+        const polyline_opt* options)           //extra options
+{
+	Vec2   AP[2];
+	Color  AC[2];
+	double AW[2];
+		AP[0] = P1; AC[0] = C1; AW[0] = W1;
+		AP[1] = P2; AC[1] = C2; AW[1] = W2;
+	polyline( AP, AC, AW, 2, options);
+}</pre>
+	segment() is merely a wrapper over polyline() , thus all options of segment() is the same as polyline().
+			<h4>Usage</h4>
+			<pre lang="C++">
+void sample_spectrum()
+{
+	for ( int i=0; i < 20; i++)
+	{
+		Vec2  P1 = { 5+29.7*i, 187};
+		Vec2  P2 = { 35+29.7*i, 8};
+		Color C1 = { 1.0,0.0,0.5, 1.0};
+		Color C2 = { 0.5,0.0,1.0, 1.0};
+		double W1= 0.3*(i+1);
+		double W2= W1;
+		
+		segment(P1,P2, C1,C2, W1,W2, 0);
+	}
+}
+
+void sample_radial_spectrum()
+{
+	for ( double ag=0, i=0; ag < 2*vaserend_pi-0.1; ag+=vaserend_pi/12, i+=1)
+	{
+		double r1 = 30.0;
+		double r2 = 90.0;
+		
+		double tx2=r2*cos(ag);
+		double ty2=r2*sin(ag);
+		double tx1=r1*cos(ag);
+		double ty1=r1*sin(ag);
+		double Ox = 120;
+		double Oy = 194+97;
+		
+		Vec2  P1 = { Ox+tx1,Oy-ty1};
+		Vec2  P2 = { Ox+tx2,Oy-ty2};
+		Color C1 = { 1.0,0.0,0.5, 1.0};
+		Color C2 = { 0.5,0.0,1.0, 1.0};
+		double W1= 0.3*(i+1);
+		double W2= W1;
+		
+		segment(P1,P2, C1,C2, W1,W2, 0);
+	}
+}</pre>
+	example program is at <code>samples/segment</code> under VaseR package. In the below spectrums, each segment is 0.3 pixel thicker/ heavier than the previous segment, demonstrating sub- pixel accuracy of VaseR.
+	<img src='../sample_images/segment.png'/>
+	</td></tr><!--segment-->
 
 </table><!--table of API-->
 
 		<h3>Source code</h3>
-Development package with documentation, source code, sample images and sample programs is at
- <a href='http://vaserenderer.git.sourceforge.net/git/gitweb.cgi?p=vaserenderer/vaserenderer;a=summary' target='_blank'>sourceforge</a>.
+Development package with documentation, source code, sample images and sample programs is at sourceforge:
+<a href='http://sourceforge.net/projects/vaserenderer/files/draft_release/July2011/VaseR-draft1_2.zip/download' target='_blank'>current stable release</a> or <a href='http://vaserenderer.git.sourceforge.net/git/gitweb.cgi?p=vaserenderer/vaserenderer;a=summary' target='_blank'>git source tree</a>.
 
 		<h3>Credit and license</h3>
 <p>Current maintainer and copyright holder is Chris Tsang, tyt2y3@gmail.com<br />
 Comments, discussions, and contributions are greatly appreciated.
 </p>
-<p>
-The license terms at this version "Vase Renderer first draft, version 0.2 (draft1_2)" are:<br />
+<p>The license terms at this version "Vase Renderer first draft, version 0.25 (draft1_2)" are:<br />
 If you used Vase Renderer (abbreviated as VaseR )in your program or produced derived work of VaseR, you should include a notice along with the distribution of your work describing how you used VaseR.<br />
 No extra restriction on commercial use. No warranty provided.
 </p>
 	</div> <!--<div id='wrap'>-->
+	
+<script>
+function getElementsByClass(searchClass,node,tag)
+{	//http://www.dustindiaz.com/getelementsbyclass
+	//also very good!
+	//http://www.dustindiaz.com/javascript-animate
+	var classElements = new Array();
+	if ( node == null )
+		node = document;
+	if ( tag == null )
+		tag = '*';
+	var els = node.getElementsByTagName(tag);
+	var elsLen = els.length;
+	var pattern = new RegExp("(^|\\s)"+searchClass+"(\\s|$)");
+	
+	for (i = 0, j = 0; i < elsLen; i++) {
+		if ( pattern.test(els[i].className) ) {
+			classElements[j] = els[i];
+			j++;
+		}
+	}
+	return classElements;
+}
+{	//init
+	var tips_list = getElementsByClass('box_tips',null,'div');
+	for ( var i=0; i<tips_list.length; i++)
+	{
+		var a_list = tips_list[i].getElementsByTagName('a');
+		if ( a_list.length > 0)
+		{
+			var instr = a_list[0].innerHTML;
+			if ( instr.length==4)
+				if ( instr=='hide')
+					box_tips_switchsize( a_list[0]);
+		}
+	}
+}
+function box_tips_switchsize(obj)
+{
+	if ( obj.innerHTML[0]=='s')
+	{	//show the box tips
+		obj.parentNode.style.height='auto';
+		obj.innerHTML='hide';
+	}
+	else
+	{	//hide it
+		obj.parentNode.style.height='60px';
+		obj.innerHTML='show';
+	}
+}
+</script>
 </body>
