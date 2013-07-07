@@ -1854,6 +1854,8 @@ static int anchor( _st_anchor& SA, const polyline_opt* options,
 				same_side_of_line( SL[i].R, SL[i-1].R, P_cur,P_las);
 					SL[i].T.follow_signs(SL[i].R);
 				SL[i].vP=SL[i].T;
+				SL[i].T1.follow_signs(SL[i].T);
+				SL[i].R1.follow_signs(SL[i].T);
 				SL[i].vR=SL[i].R;
 				SL[i].djoint=LJ_miter;
 			}
