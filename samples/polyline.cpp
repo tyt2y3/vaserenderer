@@ -16,7 +16,6 @@
 struct Vec2 { double x,y;};
 struct Color { float r,g,b,a;};
 #define VASE_RENDERER_DEBUG
-//#define VASE_RENDERER_EXPER //if defined, enable experimental, unfinished feature
 #include "../include/vase_renderer_draft1_2.cpp"
 
 void test_draw();
@@ -300,8 +299,6 @@ void test_draw()
 
 int main(int argc, char **argv)
 {
-	vaserend_actual_PPI = 111.94;
-	//
 	main_wnd = new Fl_Window( 600,300,"Vase Renderer - polyline() example - fltk/opengl");
 		make_form(); //initialize
 		gl_wnd = new Gl_Window( 0,0,400,300);  gl_wnd->end(); //create gl window

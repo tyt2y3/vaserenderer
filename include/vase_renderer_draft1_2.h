@@ -11,13 +11,6 @@ typedef your_vec2 Vec2;
 typedef your_color Color;
 */
 
-//Vaserend global variables
-const double vaserend_min_alw=0.00000000001; //smallest value not regarded as zero
-const double vaserend_pi=3.141592653589793;
-
-double vaserend_actual_PPI = 96.0;
-const double vaserend_standard_PPI = 111.94; //the PPI I used for calibration
-
 struct polyline_opt
 {	//set the whole structure to 0 will give default options
 	char joint;

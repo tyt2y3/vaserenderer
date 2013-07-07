@@ -9,11 +9,20 @@
 	#define DEBUG //
 #endif
 
+#include <math.h>
+
+namespace VaseR {
+
+//Vaserend global variables
+const double vaserend_min_alw=0.00000000001; //smallest value not regarded as zero
+const double vaserend_pi=3.141592653589793;
+
+const double vaserend_actual_PPI = 96.0;
+const double vaserend_standard_PPI = 111.94; //the PPI I used for calibration
+
 #include "Color.h"
 #include "vector_operations.h"
 #include "vertex_array_holder.h"
-
-#include <math.h>
 
 /*visual testes:
  * A. points (geometry test)
@@ -43,7 +52,7 @@
  * 5.  when a segment is shorter than its own width,,
  */
 
-static void determine_t_r ( double w, double& t, double& R)
+void determine_t_r ( double w, double& t, double& R)
 {
 	//efficiency: can cache one set of w,t,R values
 	// i.e. when a polyline is of uniform thickness, the same w is passed in repeatedly
@@ -66,7 +75,7 @@ static void determine_t_r ( double w, double& t, double& R)
 		t=2.5+ff*0.50; R=1.08;
 	}
 	
-	//PPI correction
+	/* //PPI correction
 	double PPI_correction = vaserend_standard_PPI / vaserend_actual_PPI;
 	const double up_bound = 1.6; //max value of w to receive correction
 	const double start_falloff = 1.0;
@@ -77,9 +86,9 @@ static void determine_t_r ( double w, double& t, double& R)
 		double correction = 1.0 + (PPI_correction-1.0)*(up_bound-w)/(up_bound-start_falloff);
 		t *= PPI_correction;
 		R *= PPI_correction;
-	}
+	} */
 }
-static float get_LJ_round_dangle(float t, float r)
+float get_LJ_round_dangle(float t, float r)
 {
 	float dangle;
 	float sum = t+r;
@@ -92,7 +101,7 @@ static float get_LJ_round_dangle(float t, float r)
 	return dangle;
 }
 
-static void make_T_R_C( const Point& P1, const Point& P2, Point* T, Point* R, Point* C,
+void make_T_R_C( const Point& P1, const Point& P2, Point* T, Point* R, Point* C,
 				double w, const polyline_opt& opt,
 				double* rr, double* tt, float* dist,
 				bool seg_mode=false)
@@ -110,11 +119,11 @@ static void make_T_R_C( const Point& P1, const Point& P2, Point* T, Point* R, Po
 		//TODO: handle correctly for hori/vert segments in a polyline
 		if ( Point::negligible(DP.x)) {
 			if ( w>0.0 && w<=1.0) {
-				t=0.5; r=0.05;
+				t=0.5; r=0;
 			}
 		} else if ( Point::negligible(DP.y)) {
 			if ( w>0.0 && w<=1.0) {
-				t=0.5; r=0.05;
+				t=0.5; r=0;
 			}
 		}
 	}
@@ -133,7 +142,7 @@ static void make_T_R_C( const Point& P1, const Point& P2, Point* T, Point* R, Po
 	if (R) *R = DP*r;
 }
 
-static void same_side_of_line( Point& V, const Point& ref, const Point& a, const Point& b)
+void same_side_of_line( Point& V, const Point& ref, const Point& a, const Point& b)
 {
 	double sign1 = Point::signed_area( a+ref,a,b);
 	double sign2 = Point::signed_area( a+V,  a,b);
@@ -193,7 +202,7 @@ struct _st_anchor
 	bool result; //returned by anchor()
 };
 
-static void inner_arc( vertex_array_holder& hold, const Point& P,
+void inner_arc( vertex_array_holder& hold, const Point& P,
 		const Color& C, const Color& C2,
 		float dangle, float angle1, float angle2,
 		float r, float r2, bool ignor_ends,
@@ -326,7 +335,7 @@ static void inner_arc( vertex_array_holder& hold, const Point& P,
 		}
 	}
 }
-static void vectors_to_arc( vertex_array_holder& hold, const Point& P,
+void vectors_to_arc( vertex_array_holder& hold, const Point& P,
 		const Color& C, const Color& C2,
 		Point A, Point B, float dangle, float r, float r2, bool ignor_ends,
 		Point* apparent_P)
@@ -352,7 +361,7 @@ static void vectors_to_arc( vertex_array_holder& hold, const Point& P,
 }
 
 #ifdef VASE_RENDERER_DEBUG
-static void annotate( const Point& P, Color cc, int I=-1)
+void annotate( const Point& P, Color cc, int I=-1)
 {
 	static int i=0;
 	if ( I != -1) i=I;
@@ -371,12 +380,12 @@ static void annotate( const Point& P, Color cc, int I=-1)
 	gl_draw( str,float(P.x+2),float(P.y));
 	i++;
 }
-static void annotate( const Point& P)
+void annotate( const Point& P)
 {
 	Color cc;
 	annotate(P,cc);
 }
-static void draw_vector( const Point& P, const Point& V, const char* name)
+void draw_vector( const Point& P, const Point& V, const char* name)
 {
 	Point P2 = P+V;
 	glBegin(GL_LINES);
@@ -409,24 +418,24 @@ void draw_triangles_outline( vertex_array_holder& tris)
 		glEnd();
 	}
 }
-static void printpoint( const Point& P, const char* name)
+void printpoint( const Point& P, const char* name)
 {
 	DEBUG("%s(%.4f,%.4f) ",name,P.x,P.y);
 	fflush(stdout);
 }
 #endif
 /*
-static Point plus_minus( const Point& a, const Point& b, bool plus)
+Point plus_minus( const Point& a, const Point& b, bool plus)
 {
 	if (plus) return a+b;
 	else return a-b;
 }
-static Point plus_minus( const Point& a, bool plus)
+Point plus_minus( const Point& a, bool plus)
 {
 	if (plus) return a;
 	else return -a;
 }
-static bool quad_is_reflexed( const Point& P0, const Point& P1, const Point& P2, const Point& P3)
+bool quad_is_reflexed( const Point& P0, const Point& P1, const Point& P2, const Point& P3)
 {
 	//points:
 	//   1------3
@@ -437,7 +446,7 @@ static bool quad_is_reflexed( const Point& P0, const Point& P1, const Point& P2,
 	return Point::distance_squared(P1,P3) + Point::distance_squared(P0,P2)
 		> Point::distance_squared(P0,P3) + Point::distance_squared(P1,P2);
 }
-static void push_quad_safe( vertex_array_holder& core,
+void push_quad_safe( vertex_array_holder& core,
 		const Point& P2, const Color& cc2, bool transparent2,
 		const Point& P3, const Color& cc3, bool transparent3)
 {
@@ -456,7 +465,7 @@ static void push_quad_safe( vertex_array_holder& core,
 		core.push(P2,cc2,transparent2);
 	}
 }*/
-static void push_quad( vertex_array_holder& core,
+void push_quad( vertex_array_holder& core,
 		const Point& P0, const Point& P1, const Point& P2, const Point& P3,
 		const Color& c0, const Color& c1, const Color& c2, const Color& c3,
 		bool trans0=0, bool trans1=0, bool trans2=0, bool trans3=0,
@@ -489,7 +498,7 @@ struct _st_knife_cut
 	int T1c, T2c; //count of T1 & T2
 		//must be 0,3 or 4
 };
-static int triangle_knife_cut( const Point& kn1, const Point& kn2, const Point& kn_out, //knife
+int triangle_knife_cut( const Point& kn1, const Point& kn2, const Point& kn_out, //knife
 			       const Color* kC0, const Color* kC1, //color of knife
 		_st_knife_cut& ST)//will modify for output
 //see knife_cut_test for more info
@@ -623,7 +632,7 @@ static int triangle_knife_cut( const Point& kn1, const Point& kn2, const Point& 
 	
 	return points_cut_away;
 }
-static void vah_knife_cut( vertex_array_holder& core, //serves as both input and output
+void vah_knife_cut( vertex_array_holder& core, //serves as both input and output
 		const Point& kn1, const Point& kn2, const Point& kn_out)
 //perform knife cut on all triangles (GL_TRIANGLES) in core
 {
@@ -679,7 +688,7 @@ static void vah_knife_cut( vertex_array_holder& core, //serves as both input and
 		}
 	}
 }
-static void vah_N_knife_cut( vertex_array_holder& in, vertex_array_holder& out,
+void vah_N_knife_cut( vertex_array_holder& in, vertex_array_holder& out,
 		const Point* kn0, const Point* kn1, const Point* kn2,
 		const Color* kC0, const Color* kC1,
 		int N)
@@ -766,7 +775,7 @@ static void vah_N_knife_cut( vertex_array_holder& in, vertex_array_holder& out,
 }
 
 const float cri_core_adapt = 0.0001f;
-static void anchor_late( const Vec2* P, const Color* C, _st_polyline* SL,
+void anchor_late( const Vec2* P, const Color* C, _st_polyline* SL,
 		vertex_array_holder& tris,
 		Point cap1, Point cap2)
 {	const int size_of_P = 3;
@@ -1306,7 +1315,7 @@ static void anchor_late( const Vec2* P, const Color* C, _st_polyline* SL,
 	}
 } //anchor_late
 
-static void segment_late( const Vec2* P, const Color* C, _st_polyline* SL,
+void segment_late( const Vec2* P, const Color* C, _st_polyline* SL,
 		vertex_array_holder& tris,
 		Point cap1, Point cap2)
 {
@@ -1440,7 +1449,7 @@ static void segment_late( const Vec2* P, const Color* C, _st_polyline* SL,
 	*/
 }
 
-static void segment_( const Vec2* inP, const Color* inC, const double* weight, const polyline_opt* options, 
+void segment_( const Vec2* inP, const Color* inC, const double* weight, const polyline_opt* options, 
 		bool cap_first, bool cap_last, char last_cap_type=-1)
 {
 	if ( !inP || !inC || !weight) return;
@@ -1528,7 +1537,7 @@ static void segment_( const Vec2* inP, const Color* inC, const double* weight, c
 	}
 }
 
-static int anchor( _st_anchor& SA, const polyline_opt* options,
+int anchor( _st_anchor& SA, const polyline_opt* options,
 		bool cap_first, bool cap_last)
 {
 	polyline_opt opt={0};
@@ -2153,9 +2162,16 @@ void polyline(
 	#endif //VASE_RENDERER_EXPER
 }
 
+} //namespace VaseR
+
+void polyline( const Vec2* P, const Color* C, const double* weight, int size_of_P, const polyline_opt* options, bool extraopt)
+{
+	VaseR::polyline(P,C,weight,size_of_P,options,extraopt);
+}
+
 void polyline( const Vec2* P, const Color* C, const double* weight, int size_of_P, const polyline_opt* options)
 {
-	polyline(P,C,weight,size_of_P,options,false);
+	VaseR::polyline(P,C,weight,size_of_P,options,false);
 }
 
 #undef DEBUG
