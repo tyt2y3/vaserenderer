@@ -25,19 +25,19 @@
 	<div style='clear:both'></div>
 
 <h3>Premium quality anti aliasing</h3>
-	<div style='background:#333; margin: 10px; border:5px solid #AAA; float:left; height: 150px; overflow:hidden;'>
-	<img src='docs/sample_images/fade_intro_1.png' />
-	<img src='docs/sample_images/fade_intro_2.png' />
-	<img src='docs/sample_images/fade_intro_3.png' />
-	<img src='docs/sample_images/fade_intro_4.png' />
-	</div>
+<div style='background:#333; margin: 10px; border:5px solid #AAA; float:left; height: 150px; overflow:hidden;'>
+<img src='docs/sample_images/fade_intro_1.png' />
+<img src='docs/sample_images/fade_intro_2.png' />
+<img src='docs/sample_images/fade_intro_3.png' />
+<img src='docs/sample_images/fade_intro_4.png' />
+</div>
 <br><br>From left to right: raw polygon without anti aliasing, <br>
 anti aliased with outset fade polygon, <br>
 exaggerated outsetting polygon with wireframe, <br>
 same as left without wireframe.
 	<div style='clear:both'></div>
 <p>Outset-fade polygon is the high quality, fast, portable, consistent and hassle free technique for anti aliasing. The difficulties are to calibrate the outsetting distance to achieve believable result and to perform tedious tessellation. Luckily VASEr did this for you.</p>
-<p>Below are line rendering comparison between VASEr and Cairo, click flip to compare:</p>
+<p>Below are line rendering comparison between VASEr and Cairo and AGG:</p>
 <div>
 	<div id='ab_va'>VASEr<br><img src='docs/sample_images/ab_vaser_line_thickness1.png' /></div>
 	<div id='ab_ca' style='display:none;'>Cairo<br><img src='docs/sample_images/ab_cairo_line_thickness.png' /></div>
