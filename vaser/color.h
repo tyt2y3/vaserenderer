@@ -1,8 +1,3 @@
-#ifndef VASE_RENDERER_COLOR_H
-#define VASE_RENDERER_COLOR_H
-
-#include <math.h>
-
 float& Color_get( Color& C, int index)
 {
 	switch (index)
@@ -13,26 +8,25 @@ float& Color_get( Color& C, int index)
 		default:return C.r;
 	}
 }
-
 bool Color_valid_range(float t)
 {
 	return t>=0.0f && t<=1.0f;
 }
-
 Color Color_between( const Color& A, const Color& B, float t=0.5f)
 {
 	if ( t<0.0f) t = 0.0f;
 	if ( t>1.0f) t = 1.0f;
 	
 	float kt = 1.0f - t;
-	Color C = { A.r *kt + B.r *t,
+	Color C =
+	{
+		A.r *kt + B.r *t,
 		A.g *kt + B.g *t,
 		A.b *kt + B.b *t,
 		A.a *kt + B.a *t
 	};
 	return C;
 }
-
 void sRGBtolinear( Color& C, bool exact=false)
 {	//de-Gamma 2.2
 	//from: http://www.xsi-blog.com/archives/133
@@ -79,14 +73,13 @@ void lineartosRGB( Color& C, bool exact=false)
 		}
 	}
 }
-
-static inline float MAX( float r,float g,float b)
+float color_max( float r,float g,float b)
 {
 	return r>g? (g>b?r:(r>b?r:b)) : (g>b?g:b);
 }
-static inline float MIN( float r, float g, float b)
+float color_min( float r, float g, float b)
 {
-	return -MAX( -r,-g,-b);
+	return -color_max( -r,-g,-b);
 }
 void RGBtoHSV( float r, float g, float b, float *h, float *s, float *v )
 {	//from: http://www.cs.rit.edu/~ncs/color/t_convert.html
@@ -94,8 +87,8 @@ void RGBtoHSV( float r, float g, float b, float *h, float *s, float *v )
 	// h = [0,360], s = [0,1], v = [0,1]
 	//		if s == 0, then h = -1 (undefined)
 	float min, max, delta;
-	min = MIN( r, g, b );
-	max = MAX( r, g, b );
+	min = color_min( r, g, b );
+	max = color_max( r, g, b );
 	*v = max;				// v
 	delta = max - min;
 	if( max != 0 )
@@ -146,5 +139,3 @@ void HSVtoRGB( float *r, float *g, float *b, float h, float s, float v )
 			*r = v;	*g = p;	*b = q;		break;
 	}
 }
-
-#endif

@@ -1,0 +1,420 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<head>
+	<link rel="stylesheet" type="text/css" href="style.css" />
+</head>
+<body>
+	<div class='vaser_wrap'>
+		<div class='bar'>VASEr: better stroke rendering</div>
+		<div class='article_name'>
+			<h2>VASEr API reference</h2>
+		</div>
+	<h2>Overview</h2>
+		<h3>API design</h3>
+<p>VASEr functions have no state, all stateful operations are put into the class <code>renderer</code>. Thus you need to pass many parameters on each VASEr call, and these parameters are stored in structures. Normally if you do not know what options to set, just put <code>0</code> at the parameter <code>polyline_opt*</code>. VASEr ensures empty parameter <code>polyline_opt* options=0</code> <b>and</b> empty structure <code>polyline_opt opt={0};</code> are default options and will not cause any error.
+</p>
+		<h3>Index</h3>
+<div class='textblock'>
+	class<br>
+	<a href='#renderer'>renderer</a><br>
+	structures<br>
+	<a href='#gradient'>gradient</a><br>
+	<a href='#image'>Image</a><br>
+	<a href='#tessellator_opt'>tessellator_opt</a><br>
+	<a href='#polyline'>polyline_opt</a><br>
+	<a href='#polybezier'>polybezier_opt</a><br>
+	functions<br>
+	<a href='#polyline'>polyline</a><br>
+	<a href='#segment'>segment</a><br>
+	<a href='#polybezier'>polybezier</a><br>
+</div>
+
+	<h2>Details</h2>
+<table class='api_table' style='width:100%;'>
+
+	<tr><td>
+	<a name='renderer'></a><h3>class renderer</h3>
+<pre>
+class renderer
+{
+public:
+	static void init();
+	static void before();
+	static void after();
+	static Image get_image();
+};
+</pre>
+	<p>As stated, all stateful operations are put into the class <code>renderer</code>. <code>init()</code> is intended to set up shaders etc. When calling <code>init()</code>, the open gl context is assumed to be set up by the user already. Call <code>renderer::before()</code> and <code>renderer::after()</code> before and after rendering. For more information, look at <a href='getting_started.html'>getting started</a>.</p>
+	<p><code>get_image()</code> captures an image of the current render context, in rgba 32 bit format. the (x,y) pixel (r,g,b,a) is at <code>(image.buf[y*w*b+x*b],image.buf[y*w*b+x*b+1],image.buf[y*w*b+x*b+2],image.buf[y*w*b+x*b+3])</code>, where b=4 and w=image.width.</p>
+	</td></tr><!--renderer-->
+
+	<tr><td>
+	<a name='gradient'></a><h3>struct gradient</h3>
+<pre>
+struct gradient_stop
+{
+	double t; //position
+	char type; //GS_xx
+	union
+	{
+		Color color;
+		double weight;
+	};
+};
+	const char GS_none  =0;
+	const char GS_rgba  =1;
+	const char GS_rgb   =2; //rgb only
+	const char GS_alpha =3;
+	const char GS_weight=4;
+struct gradient
+{
+	gradient_stop* stops; //array must be sorted in ascending order of t
+	int length; //number of stops
+	char unit; //use_GD_XX
+};
+	const char GD_ratio =0; //default
+	const char GD_length=1;
+</pre>
+<p>A gradient is an array of stops that specify properties at different positions in a one dimensional space. The properties can be color or weight, and the space parameter (unit) can be the length along a curve. The default parameter is ratio, that frankly speaking t=0.5 is midway along the curve.</p>
+<p>Be aware of the union, which means each stop can only hold one type of information, which must be explicitly specified by <code>gradient_stop.type</code>. If the type is unspecified, the stop is ignored.</p>
+<p>Stops of each type must be sorted in ascending order of t, but it is okay for say stops of weight come after stops of color. If there is only one stop of a type, then it is considered constant everywhere. If there is no stop of a type, then no change will be applied.</p>
+<p>For a concrete example, look at <a href='#polybezier'>polybezier</a>.</p>
+	</td></tr><!--gradient-->
+
+	<tr><td>
+	<a name='image'></a><h3>struct Image</h3>
+<pre>
+struct Image
+{
+	unsigned char* buf; //must **free** buffer manually
+	short width;
+	short height;
+};
+</pre>
+	the <code>unsigned char* buf</code> must be freed manually as in malloc/free
+	</td></tr><!--Image-->
+
+	<tr><td>
+	<a name='tessellator_opt'></a><h3>struct tessellator_opt</h3>
+<pre>
+struct tessellator_opt
+{
+	//set the whole structure to 0 will give default options
+	bool triangulation;
+	char parts; //use TS_xx
+	bool tessellate_only;
+	void* holder; //used as (VASErin::vertex_array_holder*) if tessellate_only is true
+};
+	//for tessellator_opt.parts
+	const char TS_core_fade =0; //default
+	const char TS_core      =1;
+	const char TS_outer_fade=2;
+	const char TS_inner_fade=3;
+</pre>
+<p>a <code>polyline_opt</code> contains a pointer to <code>tessellator_opt</code> which can be used to control tessellating behavior. in this version, <code>parts</code> is unimplemented. if you don't need this control,, setting <code>polyline_opt.tess</code> to zero pointer is okay.</p>
+	</td></tr><!--tessellator_opt-->
+
+	<tr><td>
+	<a name='polyline'></a><h3>polyline()</h3>
+<pre lang="C++">void polyline(
+	Vec2* P,       //array of point of a polyline
+	Color* C,      //array of color
+	double* weight,//array of weight
+	int length,    //length of the array
+	polyline_opt* options) //extra options
+</pre>
+	All arrays must be of the same size otherwise memory error will occur.<br>
+	There are 3 other variants if you do not need varying color or weight.
+<pre lang="C++">
+//constant color and weight
+void polyline( const Vec2*, Color, double W, int length, const polyline_opt*);
+//constant weight
+void polyline( const Vec2*, const Color*, double W, int length, const polyline_opt*);
+//constant color
+void polyline( const Vec2*, Color, const double* W, int length, const polyline_opt*);
+</pre>
+
+	<h4>Options</h4>
+<pre lang="C++">
+struct polyline_opt
+{
+	//set the whole structure to 0 will give default options
+	const tessellator_opt* tess;
+	char joint; //use PLJ_xx
+	char cap;   //use PLC_xx
+	bool feather;
+		double feathering;
+		bool no_feather_at_cap;
+		bool no_feather_at_core;
+};
+	//for polyline_opt.joint
+	const char PLJ_miter =0; //default
+	const char PLJ_bevel =1;
+	const char PLJ_round =2;
+	//for polyline_opt.cap
+	const char PLC_butt  =0; //default
+	const char PLC_round =1;
+	const char PLC_square=2;
+	const char PLC_rect  =3;
+	const char PLC_both  =0; //default
+	const char PLC_first =10;
+	const char PLC_last  =20;
+	const char PLC_none  =30;
+</pre>
+	
+	<code>
+		<table>
+			<caption>opt.joint</caption>
+			<tr><td>PLJ_miter<br><img src='sample_images/PLJ_miter.png' /></td>
+				<td>PLJ_bevel<br><img src='sample_images/PLJ_bevel.png' /></td>
+				<td>PLJ_round<br><img src='sample_images/PLJ_round.png' /></td>
+			</tr>
+		</table>
+		<br>
+		<table>
+			<caption>opt.cap</caption>
+			<tr><td>PLC_butt<br><img src='sample_images/PLC_butt.png' /></td>
+				<td>PLC_round<br><img src='sample_images/PLC_round.png' /></td>
+				<td>PLC_square<br><img src='sample_images/PLC_square.png' /></td>
+			</tr>
+			<tr><td colspan=3 style='text-align:left;'>PLC_rect<br>
+				PLC_rect is related to feathering. PLC_rect puts the fade polygon out of the end points of a polyline.<br>When feather=false, PLC_rect looks very close to PLC_butt. The difference is only obvious at high value of feathering.
+				</td>
+			</tr>
+			<tr>
+				<td>PLC_rect<br><img src='sample_images/PLC_rect.png' /></td>
+				<td colspan=2>PLC_butt<br><img src='sample_images/PLC_butt_high_feathering.png' /></td>
+			</tr>
+			<tr><td colspan=3 style='text-align:left;'>There are modifiers and can be numerically added together to the value to control rendering of cap parts. it is necessary if you need to join segments yourself.</td>
+			</tr>
+			<tr><td>PLC_butt+PLC_both<br><img src='sample_images/PLC_both.png' /></td>
+				<td>PLC_butt+PLC_first<br><img src='sample_images/PLC_first.png' /></td>
+				<td>PLC_butt+PLC_none<br><img src='sample_images/PLC_none.png' /></td>
+			</tr>
+		</table>
+		<br>
+		<table>
+			<caption>opt.feather, opt.feathering, opt.no_feather_at_cap, opt.no_feather_at_core</caption>
+			<tr><td style='text-align:left;'>feathering is a multiplier to the magnitude of the outset-fade polygon. do not set it to lower than 1.0 .<br>
+			feathering is unique to VASEr. A feathered polyline with round cap and round joint can mimic the feel of an air brush stroke.
+			</td>
+			<td><img src='sample_images/PL_mimic_airbrush.png'/></td>
+		</tr>
+		</table>
+		<table>
+			<tr>	
+				<td>opt.feather = false;<br><img src='sample_images/PLJ_miter.png' /></td>
+				
+				<td>opt.feather = true;<br>opt.feathering = 8.0;<br>
+				<img src='sample_images/PL_feathering_8.png' />
+				</td>
+			</tr>
+			<tr>
+				<td>opt.feather = true;<br>
+				opt.feathering = 8.0;<br>
+				opt.no_feather_at_cap = true;<br>
+				opt.no_feather_at_core = false;<br>
+				<img src='sample_images/PL_no_feather_at_cap.png' />
+				</td>
+				
+				<td>opt.feather = true;<br>
+				opt.feathering = 8.0;<br>
+				opt.no_feather_at_cap = false;<br>
+				opt.no_feather_at_core = true;<br>
+				<img src='sample_images/PL_no_feather_at_core.png' />
+				</td>
+			</tr>
+			<tr><td colspan=2>
+				remarks: no_feather_at_cap only affects cap type PLC_butt,
+				PLC_square and PLC_rect .
+				</td>
+			</tr>
+		</table>
+		<br>
+	</code>
+
+		<h4>Usage</h4>
+	<div style='float:right'>
+	<img src='sample_images/polyline_4.png' /><br>
+	<img src='sample_images/polyline_3.png' />
+	</div>
+	<pre lang="C++">
+void sample_polyline1()
+{
+	int size_of_AP=4;
+	Vec2 AP[size_of_AP];
+		AP[0].x=200; AP[0].y=50;
+		AP[1].x=100; AP[1].y=150;
+		AP[2].x=300; AP[2].y=150;
+		AP[3].x=200; AP[3].y=250;
+	Color col={ 0.5, 0.8, 1.0, 1};
+	polyline( AP, col, 8.0, size_of_AP, 0);
+}
+void sample_polyline2()
+{
+	int size_of_AP=4;
+	Vec2 AP[size_of_AP];
+		AP[0].x=200; AP[0].y=50;
+		AP[1].x=100; AP[1].y=150;
+		AP[2].x=300; AP[2].y=150;
+		AP[3].x=200; AP[3].y=250;
+	Color AC[size_of_AP];
+		{ Color col={1 , 0, 0, 0.5}; AC[0]=col;}
+		{ Color col={.8,.8, 0, 0.5}; AC[1]=col;}
+		{ Color col={ 0, 0, 1, 0.5}; AC[2]=col;}
+		{ Color col={1 , 0, 0, 0.5}; AC[3]=col;}
+	double AW[size_of_AP];
+		AW[0] = 1.0;
+		AW[1] = 15.0;
+		AW[2] = 15.0;
+		AW[3] = 1.0;
+	
+	polyline_opt opt={0};
+	polyline( AP, AC, AW, size_of_AP, &opt);
+}
+</pre>
+	<div style='clear:both'></div>
+
+example program is at <code>samples/samples.cpp</code> under VASEr package.
+
+		<h4>Notes</h4>
+Varying color is stable but will cause overdraw at degenerated cases.<br>
+Varying weight is stable most of the time but will go wild when extreme case occur.<br>
+This version of polyline is improved to render dense vertices for curves.<br>
+
+		<h4>Further work</h4>
+After solving the above mentioned problems, can provide the choice between color blending profiles, possibly 'hard' and 'soft'. and besides gradient, provide texture along path.
+	</td></tr><!--polyline-->
+	
+	<tr><td>
+		<a name='segment'></a><h3>segment()</h3>
+		<pre lang="C++">
+void segment( Vec2,  Vec2,
+              Color, Color,
+              double, double, //weight
+              const polyline_opt*); //same use as polyline
+void segment( Vec2, Vec2, Color, double W, const polyline_opt*); //constant color and weight
+void segment( Vec2, Vec2, Color, Color, double W, const polyline_opt*); //constant weight
+void segment( Vec2, Vec2, Color, double W1, double W2, const polyline_opt*); //const color
+</pre>
+	<code>segment()</code> is merely a wrapper over <code>polyline()</code>. There are also three variants.
+			<h4>Usage</h4>
+			<pre lang="C++">
+void sample_spectrum()
+{
+	for ( int i=0; i < 20; i++)
+	{
+		Vec2  P1 = { 5+29.7*i, 187};
+		Vec2  P2 = { 35+29.7*i, 8};
+		Color C1 = { 1.0,0.0,0.5, 1.0};
+		Color C2 = { 0.5,0.0,1.0, 1.0};
+		double W1= 0.3*(i+1);
+		double W2= W1;
+		
+		segment(P1,P2, C1,C2, W1,W2, 0);
+	}
+}
+
+void sample_radial_spectrum()
+{
+	for ( double ag=0, i=0; ag < 2*vaser_pi-0.1; ag+=vaser_pi/12, i+=1)
+	{
+		double r1 = 30.0;
+		double r2 = 90.0;
+		
+		double tx2=r2*cos(ag);
+		double ty2=r2*sin(ag);
+		double tx1=r1*cos(ag);
+		double ty1=r1*sin(ag);
+		double Ox = 120;
+		double Oy = 194+97;
+		
+		Vec2  P1 = { Ox+tx1,Oy-ty1};
+		Vec2  P2 = { Ox+tx2,Oy-ty2};
+		Color C1 = { 1.0,0.0,0.5, 1.0};
+		Color C2 = { 0.5,0.0,1.0, 1.0};
+		double W1= 0.3*(i+1);
+		double W2= W1;
+		
+		segment(P1,P2, C1,C2, W1,W2, 0);
+	}
+}
+</pre>
+	example program is at <code>samples/samples.cpp<</code> under VASEr package. In the below spectrums, each segment is 0.3 pixel heavier than the previous segment, demonstrating sub pixel accuracy and anti aliasing quality of VASEr.
+	<img src='sample_images/segment.png'/>
+	</td></tr><!--segment-->
+	
+	<tr><td>
+	<a name='polybezier'></a><h3>polybezier()</h3>
+	<pre>
+void polybezier( const Vec2* P, const gradient*, int length, const polybezier_opt*);
+void polybezier( const Vec2* P, Color, double W, int length, const polybezier_opt*);
+	</pre>
+The <code></code> <code>P</code> is an array of control points. The evaluated curve is continuous, with adjacent bezier sections sharing a common control point. so n cubic bezier sections require 3n+1 points. A pointer to <a href='#gradient'>gradient</a> or constant color and width can be passed in.
+		<h4>Options</h4>
+<pre>
+struct polybezier_opt
+{
+	//set the whole structure to 0 will give default options
+	const polyline_opt* poly;
+};
+</pre>
+Under the hood, bezier curves will be evaluated, and the set of points will be sent to <code>polyline()</code> for rendering, using <code>const polyline_opt* poly</code> as options if specified.
+		<h4>Usage</h4>
+	<div style='float:right'>
+	<img src='sample_images/bezier_3.png' /><br>
+	<img src='sample_images/bezier_4.png' />
+	</div>
+	<pre>
+void sample_bezier1()
+{
+	int size_of_AP=4;
+	Vec2 AP[size_of_AP];
+		AP[0].x=200; AP[0].y=50;
+		AP[1].x=100; AP[1].y=150;
+		AP[2].x=300; AP[2].y=150;
+		AP[3].x=200; AP[3].y=250;
+	Color col={ 0.5, 0.8, 1.0, 1};
+	polybezier( AP, col, 12.0, size_of_AP, 0);
+}
+void sample_bezier2()
+{
+	int size_of_AP=4;
+	Vec2 AP[size_of_AP];
+		AP[0].x=200; AP[0].y=50;
+		AP[1].x=100; AP[1].y=150;
+		AP[2].x=300; AP[2].y=150;
+		AP[3].x=200; AP[3].y=250;
+	Color AC[size_of_AP];
+		{ Color col={1 , 0, 0, 0.5}; AC[0]=col;}
+		{ Color col={.8,.8, 0, 0.5}; AC[1]=col;}
+		{ Color col={ 0, 0, 1, 0.5}; AC[2]=col;}
+		{ Color col={1 , 0, 0, 0.5}; AC[3]=col;}
+	double AW[size_of_AP];
+		AW[0] = 1.0;
+		AW[1] = 15.0;
+		AW[2] = 15.0;
+		AW[3] = 1.0;
+	gradient grad = {0};
+		gradient_stop stop[10] = {0};
+		grad.stops = stop;
+		grad.length = 10;
+		stop[0].t = 0.00; stop[0].type = GS_rgba; stop[0].color = AC[0];
+		stop[1].t = 0.50; stop[1].type = GS_rgba; stop[1].color = AC[2];
+		stop[2].t = 1.00; stop[2].type = GS_rgba; stop[2].color = AC[3];
+		stop[3].t = 0.00; stop[3].type = GS_weight; stop[3].weight = AW[0];
+		stop[4].t = 0.33; stop[4].type = GS_weight; stop[4].weight = AW[1];
+		stop[5].t = 0.66; stop[5].type = GS_weight; stop[5].weight = AW[2];
+		stop[6].t = 1.00; stop[6].type = GS_weight; stop[6].weight = AW[3];
+	polybezier( AP, &grad, size_of_AP, 0);
+}
+</pre>
+	<div style='clear:both'></div>
+Again, example program is at <code>samples/samples.cpp</code>.
+	</td></tr><!--polybezier-->
+	
+	<tr><td>
+	<a name='template'></a><h3></h3>
+	</td></tr><!--template-->
+
+</table><!--table of API-->
+</body>

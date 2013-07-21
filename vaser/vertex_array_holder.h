@@ -1,16 +1,15 @@
-#ifndef VERTEX_ARRAY_HOLDER_H
-#define VERTEX_ARRAY_HOLDER_H
+#ifndef VASER_VERTEX_ARRAY_HOLDER_H
+#define VASER_VERTEX_ARRAY_HOLDER_H
 
 class vertex_array_holder
 {
+public:
 	int count; //counter
 	int glmode; //drawing mode in opengl
 	bool jumping;
-public:
-	const static int MAX_VERT=512;
-	float vert[MAX_VERT*2]; //because it holds 2d vectors
-	float color[MAX_VERT*4]; //RGBA
-	
+	std::vector<float> vert; //because it holds 2d vectors
+	std::vector<float> color; //RGBA
+
 	vertex_array_holder()
 	{
 		count = 0;
@@ -21,11 +20,6 @@ public:
 	void set_gl_draw_mode( int gl_draw_mode)
 	{
 		glmode = gl_draw_mode;
-	}
-	
-	int get_count() const
-	{
-		return count;
 	}
 	
 	void clear()
@@ -53,7 +47,7 @@ public:
 		color[a*4+3]= C.a;
 	}
 	
-	int draw_and_flush()
+	/* int draw_and_flush()
 	{
 		int& i = count;
 		draw();
@@ -111,38 +105,24 @@ public:
 		}
 		if ( i == MAX_VERT) //as a double check
 			i=0;
-	}
+	}*/
 	
-	int push( const Point& P, const Color& cc, bool transparent=false)
+	int push( const Point& P, const Color& cc, bool trans=false)
 	{
-		int& i = count;
-		int cur;
-		
-		if ( i+1 == MAX_VERT)
-		{	//when the internal array is full
-			draw_and_flush();
-		}
-		
-		cur = i;
-		vert[i*2]  = P.x;
-		vert[i*2+1]= P.y;
-		
-		color[i*4]  = cc.r;
-		color[i*4+1]= cc.g;
-		color[i*4+2]= cc.b;
-		if ( transparent==true)
-			color[i*4+3]= 0.0f;
-		else
-			color[i*4+3]= cc.a;
-		
-		i++;
-		
+		int cur = count;
+		vert.push_back(P.x);
+		vert.push_back(P.y);
+		color.push_back(cc.r);
+		color.push_back(cc.g);
+		color.push_back(cc.b);
+		color.push_back(trans?0.0f:cc.a);
+
+		count++;
 		if ( jumping)
 		{
 			jumping=false;
 			repeat_last_push();
 		}
-		
 		return cur;
 	}
 	
@@ -157,54 +137,28 @@ public:
 	
 	void push( const vertex_array_holder& hold)
 	{
-		int b_count = hold.get_count();
-		
 		if ( glmode == hold.glmode)
 		{
-			if ( count+b_count < MAX_VERT - 4)
-			{
-				int& a = count;
-				for (int b=0; b < b_count; a++,b++)
-				{
-					vert[a*2]   = hold.vert[b*2];
-					vert[a*2+1] = hold.vert[b*2+1];
-					
-					color[a*4]  = hold.color[b*4];
-					color[a*4+1]= hold.color[b*4+1];
-					color[a*4+2]= hold.color[b*4+2];
-					color[a*4+3]= hold.color[b*4+3];
-				}
-			}
-			else
-			{
-				DEBUG( "vertex_array_holder:push: buffer not large enough to push another vah.\n");
-			}
+			count += hold.count;
+			vert.insert(vert.end(), hold.vert.begin(), hold.vert.end());
+			color.insert(color.end(), hold.color.begin(), hold.color.end());
 		}
 		else if ( glmode == GL_TRIANGLES &&
 			hold.glmode == GL_TRIANGLE_STRIP)
-		{
-			if ( count+b_count*3 < MAX_VERT - 4)
+		{		
+			int& a = count;
+			for (int b=2; b < hold.count; b++)
 			{
-				int& a = count;
-				for (int b=2; b < b_count; b++)
+				for ( int k=0; k<3; k++,a++)
 				{
-					for ( int k=0; k<3; k++,a++)
-					{
-						int B = b-2 + k;
-						
-						vert[a*2]   = hold.vert[B*2];
-						vert[a*2+1] = hold.vert[B*2+1];
-						
-						color[a*4]  = hold.color[B*4];
-						color[a*4+1]= hold.color[B*4+1];
-						color[a*4+2]= hold.color[B*4+2];
-						color[a*4+3]= hold.color[B*4+3];
-					}
+					int B = b-2 + k;
+					vert.push_back(hold.vert[B*2]);
+					vert.push_back(hold.vert[B*2+1]);
+					color.push_back(hold.color[B*4]);
+					color.push_back(hold.color[B*4+1]);
+					color.push_back(hold.color[B*4+2]);
+					color.push_back(hold.color[B*4+3]);
 				}
-			}
-			else
-			{
-				DEBUG( "vertex_array_holder:push: buffer not large enough to push another vah.\n");
 			}
 		}
 		else
@@ -233,7 +187,7 @@ public:
 	{	//di=-1 is the last one
 		int i = count+di;
 		if ( i<0) i=0;
-		if ( i>=MAX_VERT) i=MAX_VERT-1;
+		if ( i>=count) i=count-1;
 		return get(i);
 	}
 	void repeat_last_push()
@@ -245,7 +199,6 @@ public:
 		
 		P.x = vert[i*2];
 		P.y = vert[i*2+1];
-		
 		cc.r = color[i*4];
 		cc.g = color[i*4+1];
 		cc.b = color[i*4+2];
@@ -261,15 +214,50 @@ public:
 			jumping=true;
 		}
 	}
-	
-	void draw() //the only place to call gl functions
+	void draw()
 	{
-		if ( count > 0) //save some effort
+		backend::vah_draw(*this);
+	}
+	void draw_triangles()
+	{
+		Color col={1 , 0, 0, 0.5};
+		if ( glmode == GL_TRIANGLES)
 		{
-			glVertexPointer(2, GL_FLOAT, 0, vert);
-			glColorPointer (4, GL_FLOAT, 0, color);
-			glDrawArrays (glmode, 0, count);
+			for ( int i=0; i<count; i++)
+			{
+				Point P[4];
+				P[0] = get(i); i++;
+				P[1] = get(i); i++;
+				P[2] = get(i);
+				P[3] = P[0];
+				polyline((Vec2*)P,col,1.0,4,0);
+			}
 		}
+		else if ( glmode == GL_TRIANGLE_STRIP)
+		{
+			for ( int i=2; i<count; i++)
+			{
+				Point P[3];
+				P[0] = get(i-2);
+				P[1] = get(i);
+				P[2] = get(i-1);
+				polyline((Vec2*)P,col,1.0,3,0);
+			}
+		}
+	}
+	void swap(vertex_array_holder& B)
+	{
+		int hold_count=count;
+		int hold_glmode=glmode;
+		bool hold_jumping=jumping;
+		count = B.count;
+		glmode = B.glmode;
+		jumping = B.jumping;
+		B.count = hold_count;
+		B.glmode = hold_glmode;
+		B.jumping = hold_jumping;
+		vert.swap(B.vert);
+		color.swap(B.color);
 	}
 };
 

@@ -13,10 +13,13 @@
 #include <FL/Fl_Window.H>
 #include <FL/Fl_Radio_Light_Button.H>
 
-struct Vec2 { double x,y;};
-struct Color { float r,g,b,a;};
-#define VASE_RENDERER_DEBUG
-#include "../include/vase_renderer_draft1_2.cpp"
+namespace VASEr
+{
+	struct Vec2 { double x,y;};
+	struct Color { float r,g,b,a;};
+}
+#include "../vaser/vaser.cpp"
+using namespace VASEr;
 
 void test_draw();
 #include "test1_base.cpp"
@@ -31,32 +34,15 @@ Fl_Button *colored, *alphaed, *weighted;
 char get_cap_type()
 {
 	if ( jc_butt->value())
-		return LC_butt;
+		return PLC_butt;
 	else if ( jc_round->value())
-		return LC_round;
+		return PLC_round;
 	else if ( jc_square->value())
-		return LC_square;
+		return PLC_square;
 	else if ( jc_rect->value())
-		return LC_rect;
+		return PLC_rect;
 	else
 		return 0;
-}
-void enable_glstates()
-{
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glEnableClientState(GL_COLOR_ARRAY);
-	
-	glDisableClientState(GL_EDGE_FLAG_ARRAY);
-	glDisableClientState(GL_FOG_COORD_ARRAY);
-	glDisableClientState(GL_INDEX_ARRAY);
-	glDisableClientState(GL_NORMAL_ARRAY);
-	glDisableClientState(GL_SECONDARY_COLOR_ARRAY);
-	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-}
-void disable_glstates()
-{
-	glDisableClientState(GL_VERTEX_ARRAY);
-	glDisableClientState(GL_COLOR_ARRAY);
 }
 void drag_cb(Fl_Widget* W, void*)
 {
@@ -118,10 +104,9 @@ void make_form()
 }
 void test_draw()
 {
-	enable_glstates();
+	renderer::before();
 	
 	polyline_opt opt={0};
-	
 	opt.feather    = feather->value();
 	opt.feathering = feathering->value();
 	opt.no_feather_at_cap = no_feather_at_cap->value();
@@ -152,7 +137,7 @@ void test_draw()
 		{
 			W1 = 0.1;
 		}
-		if ( opt.cap != LC_butt)
+		if ( opt.cap != PLC_butt)
 		{
 			double end_weight = 0.3*(20) + start_weight->value();
 			P1.y -= end_weight*0.5;
@@ -164,13 +149,14 @@ void test_draw()
 			&opt);        //extra options
 	}
 	
-	for ( double ag=0, i=0; ag<2*vaserend_pi-0.1; ag+=vaserend_pi/12, i+=1)
+	const double pi=3.14159265;
+	for ( double ag=0, i=0; ag<2*pi-0.1; ag+=pi/12, i+=1)
 	{
 		double r1 = 0.0;
 		double r2 = 90.0;
 		if ( !weighted->value())
 			r1 = 30.0;
-		if ( opt.cap != LC_butt)
+		if ( opt.cap != PLC_butt)
 		{
 			double end_weight = 0.3*(12) + start_weight->value();
 			r2 -= end_weight*0.5;
@@ -211,13 +197,11 @@ void test_draw()
 			&opt);        //extra options
 	}
 	
-	disable_glstates();
+	renderer::after();
 }
 
 int main(int argc, char **argv)
 {
-	vaserend_actual_PPI = 111.94;
-	//
 	main_wnd = new Fl_Window( 606+200,194*2,"Vase Renderer - segment() example - fltk/opengl");
 		make_form(); //initialize
 		gl_wnd = new Gl_Window( 0,0,606,194*2);  gl_wnd->end(); //create gl window

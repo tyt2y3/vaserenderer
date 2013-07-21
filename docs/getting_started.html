@@ -1,0 +1,126 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<head>
+	<link rel="stylesheet" type="text/css" href="style.css" />
+</head>
+<body>
+	<div class='vaser_wrap'>
+		<div class='bar'>VASEr: better stroke rendering</div>
+		<div class='article_name'>
+			<h2>VASEr getting started</h2>
+		</div>
+	<h3>The role of a renderer</h3>
+<p>To use VASEr properly, you need to understand what role does VASEr play in the rendering pipeline. Suppose your application has a 2D rendering pipeline like:
+</p>
+
+<table>
+<tr><td>transformation</td></tr>
+<tr><td>clipping</td></tr>
+<tr class='box_redlight'>
+	<td>primitives generation<br>
+		<code>glDrawArrays();</code>
+		or
+		<code>glBegin(); glEnd();</code>
+	</td>
+</tr>
+<tr><td>composition</td></tr>
+</table>
+
+<p>VASEr merely takes care the primitives generation part (redlighted). Call <code>renderer::before()</code> and <code>renderer::after()</code> before and after rendering. VASEr API is namespaced <code>VASEr</code>.
+</p>
+
+<div class='box_tips'>
+Example: <a onclick='box_tips_switchsize(this)'>hide</a><br>
+How to correctly set gl states for VASEr..
+<p>Suppose you have a helloworld application that only renders a line segment in draw():</p>
+<pre lang="C++">
+void draw()
+{
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
+		glLoadIdentity();
+		glOrtho( 0,context_width,context_height,0,0.0f,100.0f);
+		<b>glLineWidth(2.0);
+		glBegin(GL_LINES);
+			glColor4f(1,0,0.5, 1);
+			glVertex2f(10,100);
+			glColor4f(0.5,0,1, 1);
+			glVertex2f(100,300);
+		glEnd();
+		//other drawings</b>
+	glMatrixMode(GL_PROJECTION);
+	glPopMatrix();
+}</pre>
+then change to:
+<pre lang="C++">
+void draw()
+{
+	<b>using namespace VASEr;</b>
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
+		glLoadIdentity();
+		glOrtho( 0,context_width,context_height,0,0.0f,100.0f);
+		<b>renderer::before();
+			{	Vec2  P1 = {10,100};
+				Vec2  P2 = {100,300};
+				Color C1 = {1,0,0.5, 1};
+				Color C2 = {0.5,0,1, 1};
+				double W1= 2.0;
+				double W2= W1;
+				segment(P1,P2, C1,C2, W1,W2, 0);
+			}
+			//other VASEr renderings
+		renderer::after();</b>
+	glMatrixMode(GL_PROJECTION);
+	glPopMatrix();
+}</pre>
+</div> <!--class='box_tips' -->
+
+	<h3>include and compile</h3>
+<p>Provide these structs to VASEr <b>before</b> include by:</p>
+<pre lang="C++">
+namespace VASEr
+{
+	struct Vec2 { double x,y;};
+	struct Color { float r,g,b,a;};
+} </pre>
+<b>or</b>
+<pre lang="C++">
+namespace VASEr
+{
+	typedef your_vec2 Vec2;
+	typedef your_color Color;
+} </pre>
+<p>then <code>#include "vaser.h"</code>. There is only one file to compile, <code>vaser.cpp</code>. It is a unity build; no make file, no hassle. Alternatively, <code>#include "vaser.cpp"</code> just works, because implementation is namespaced in <code>VASErin</code> to prevent collision.</p>
+<p>defining a Vec2 with <code>float</code> precision may work but may lead to undesirable precision lost, because internally VASEr use <code>double</code> for floating point operations.</p>
+<script>
+/*
+(function()
+{	//init
+	var tips_list = document.getElementsByClassName('box_tips');
+	for ( var i=0; i<tips_list.length; i++)
+	{
+		var a_list = tips_list[i].getElementsByTagName('a');
+		if ( a_list.length > 0)
+		{
+			var instr = a_list[0].innerHTML;
+			if ( instr.length==4)
+				if ( instr=='hide')
+					box_tips_switchsize( a_list[0]);
+		}
+	}
+}());*/
+function box_tips_switchsize(obj)
+{
+	if ( obj.innerHTML=='show')
+	{	//show the box tips
+		obj.parentNode.style.height='auto';
+		obj.innerHTML='hide';
+	}
+	else
+	{	//hide it
+		obj.parentNode.style.height='140px';
+		obj.innerHTML='show';
+	}
+}
+</script>
+</body>

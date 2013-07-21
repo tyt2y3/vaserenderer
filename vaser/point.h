@@ -1,8 +1,3 @@
-#ifndef VECTOR_OPERATIONS_H
-#define VECTOR_OPERATIONS_H
-
-#include <math.h>
-
 class Point : public Vec2
 {
 public:
@@ -21,11 +16,11 @@ public:
 	}
 	
 	//attributes
-	double length()
+	double length() const
 	{
 		return sqrt(x*x+y*y);
 	}
-	double slope()
+	double slope() const
 	{
 		return y/x;
 	}
@@ -96,7 +91,7 @@ public:
 	double normalize()
 	{
 		double L = length();
-		if ( L > vaserend_min_alw)
+		if ( L > vaser_min_alw)
 		{
 			x /= L; y /= L;
 		}
@@ -119,21 +114,21 @@ public:
 	//judgements
 	static inline bool negligible( double M)
 	{
-		return -vaserend_min_alw < M && M < vaserend_min_alw;
+		return -vaser_min_alw < M && M < vaser_min_alw;
 	}
-	bool negligible()
+	bool negligible() const
 	{
 		return Point::negligible(x) && Point::negligible(y);
 	}
-	bool non_negligible()
+	bool non_negligible() const
 	{
 		return !negligible();
 	}
-	bool is_zero()
+	bool is_zero() const
 	{
 		return x==0.0 && y==0.0;
 	}
-	bool non_zero()
+	bool non_zero() const
 	{
 		return !is_zero();
 	}
@@ -202,7 +197,7 @@ public:
 	}
 	
 	//operations of 4 points
-	static int intersect( const Point& P1, const Point& P2,  //line 1
+	static char intersect( const Point& P1, const Point& P2,  //line 1
 			const Point& P3, const Point& P4, //line 2
 			Point& Pout,			  //the output point
 			double* ua_out=0, double* ub_out=0)
@@ -214,7 +209,7 @@ public:
 		numera = (P4.x-P3.x) * (P1.y-P3.y) - (P4.y-P3.y) * (P1.x-P3.x);
 		numerb = (P2.x-P1.x) * (P1.y-P3.y) - (P2.y-P1.y) * (P1.x-P3.x);
 
-		if (	negligible(numera) &&
+		if( negligible(numera) &&
 			negligible(numerb) &&
 			negligible(denom)) {
 		Pout.x = (P1.x + P2.x) * 0.5;
@@ -256,5 +251,3 @@ public:
  * sizeof(Vec2)=16  sizeof(Point)=16
  * Point is not heavier, just more powerful :)
 */
-
-#endif

@@ -4,8 +4,6 @@
 #include <FL/Fl_Window.H>
 #include <FL/Fl_Gl_Window.H>
 
-#include "../include/vase_renderer_draft1_2.h"
-
 class Gl_Window : public Fl_Gl_Window
 {
 	//methods
@@ -37,6 +35,7 @@ void Gl_Window::init()
 	cur_drag=-1;
 	tsize=0;
 	target=0;
+	
 }
 void Gl_Window::draw()
 {
@@ -45,10 +44,8 @@ void Gl_Window::draw()
 		glMatrixMode(GL_PROJECTION);
 			glLoadIdentity();
 			glOrtho( 0,w(),h(),0,0.0f,100.0f);
-			glClearColor( 1.0,1.0,1.0,1.0f);
+			glClearColor( 1.0, 1.0, 1.0, 1.0);
 			glClearDepth( 0.0f);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	}
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
