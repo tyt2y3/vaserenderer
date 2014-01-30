@@ -17,15 +17,16 @@ void gradient_apply(const gradient* gradp, Color* C, double* W, const double* L,
 	short las_c=-1, las_a=-1, las_w=-1, //last
 		cur_c=-1, cur_a=-1, cur_w=-1, //current
 		nex_c=0, nex_a=0, nex_w=0; //next
-
+	double length_along=0.0;
 	if( grad.length>1)
 	for( int i=0; i<length; i++)
 	{
+		length_along += L[i];
 		double p;
 		if( grad.unit==GD_ratio)
-			p = L[i]/path_length;
+			p = length_along/path_length;
 		else if ( grad.unit==GD_length)
-			p = L[i];
+			p = length_along;
 
 		{	//lookup for cur
 			for( nex_w=cur_w; nex_w < grad.length; nex_w++)

@@ -4,7 +4,7 @@
 			<h1>VASE<span style='line-height:40px;'> renderer</span></h1>
 		</div>
 <h2>About</h2>
-<p>VASE renderer version 0.4 (VASEr 0.4) is a tessellating library for rendering high quality 2D vector graphics. It is an attempt to address unconventional features in 2d graphics. It is intended for OpenGL 1.1+, but much of the code is API independent C++.</p>
+<p>VASE renderer version 0.41 (VASEr 0.41) is a tessellating library for rendering high quality 2D vector graphics. It is an attempt to address unconventional features in 2d graphics. It is intended for OpenGL 1.1+, but much of the code is API independent C++.</p>
 
 <h2>Unconventional features</h2>
 <h3>Per vertex coloring and weighting</h3>
@@ -72,8 +72,8 @@ same as left without wireframe.
 </div>
 
 <h2>License</h2>
-<p>Copyright (2011,2013) Tsang Hao Fung (Chris Tsang) tyt2y3@gmail.com</p>
-<p>This program "VASE Renderer version 0.4" is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation,  either version 3 of the License, or (at your option) any later version.</p>
+<p>Copyright (2011-2014) Tsang Hao Fung (Chris Tsang) tyt2y3@gmail.com</p>
+<p>This program "VASE Renderer version 0.41" is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation,  either version 3 of the License, or (at your option) any later version.</p>
 
 <p>This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.</p>
 
@@ -82,6 +82,6 @@ along with this program.  If not, see <a href='http://www.gnu.org/licenses/lgpl.
 
 <h3>Credit</h3>
 <ul>
-<li>Bezier curve subdivision code is extracted from Anti-Grain Geometry V2.5 Copyright 2002-2006 Maxim Shemanarev [GPL license]</li>
+<li>Bezier curve subdivision code is extracted from Anti-Grain Geometry V2.4 Copyright 2002-2005 Maxim Shemanarev (McSeem) [Modified BSD License]</li>
 </ul>
 </body>

@@ -1,1 +1,1 @@
-this folder is for holding experiments related to development. you can safely them.
+this folder is for holding experiments related to development. you can safely ignor them.

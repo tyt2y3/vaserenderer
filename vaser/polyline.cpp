@@ -1779,6 +1779,7 @@ struct polyline_inopt
 	bool no_cap_last;
 	bool join_first;
 	bool join_last;
+	double* segment_length; //array of length of each segment
 };
 
 void poly_point_inter( const Point* P, const Color* C, const double* W, const polyline_inopt* inopt,
@@ -1820,6 +1821,7 @@ void polyline_approx(
 	const Point* P=(Point*)points;
 	bool cap_first= inopt? !inopt->no_cap_first :true;
 	bool cap_last=  inopt? !inopt->no_cap_last  :true;
+	double* seg_len=inopt? inopt->segment_length: 0;
 
 	st_anchor SA1,SA2;
 	vertex_array_holder vcore;  //curve core
@@ -1843,7 +1845,7 @@ void polyline_approx(
 			r*=opt->feathering;
 		Point V=P[i]-P[i-1];
 		V.perpen();
-		V.normalize(); //performance: redundant sqrt
+		V.normalize();
 		Point F=V*r;
 		V*=t;
 		vcore.push( P[i]+V,  color(i));
@@ -2063,8 +2065,18 @@ void polyline(
 	{
 		Point V1=P[i]-P[i-1];
 		Point V2=P[i+1]-P[i];
-		double len = V1.normalize()*0.5;
-		len += V2.normalize()*0.5;
+		double len=0.0;
+		if( inopt.segment_length)
+		{
+			V1 /= inopt.segment_length[i];
+			V2 /= inopt.segment_length[i+1];
+			len += (inopt.segment_length[i]+inopt.segment_length[i+1])*0.5;
+		}
+		else
+		{
+			len += V1.normalize()*0.5;
+			len += V2.normalize()*0.5;
+		}
 		double costho = V1.x*V2.x+V1.y*V2.y;
 		//double angle = acos(costho)*180/vaser_pi;
 		const double cos_a = cos(15*vaser_pi/180);

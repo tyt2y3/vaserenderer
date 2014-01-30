@@ -66,6 +66,11 @@ public:
 		x *= k; y *= k;
 		return *this;
 	}
+	Point& operator/=(const double k)
+	{
+		x /= k; y /= k;
+		return *this;
+	}
 	
 	static void dot( const Point& a, const Point& b, Point& o) //dot product: o = a dot b
 	{

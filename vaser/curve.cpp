@@ -61,7 +61,9 @@ public:
 	void draw(const polyline_opt* options)
 	{
 		if( !N) return;
-		polyline( &P[0],&C[0],&W[0],N,options);
+		polyline_inopt in_options={0};
+		in_options.segment_length = &L[0];
+		polyline( &P[0],&C[0],&W[0],N,options,&in_options);
 	}
 private:
 	bool addvertex(const Vec2& V, const Color* cc=0, double ww=0.0)
@@ -76,7 +78,7 @@ private:
 			{
 				double len = (Point(V)-Point(P[N-1])).length();
 				path_length += len;
-				L.push_back(path_length);
+				L.push_back(len);
 			}
 			//color
 			if( cc)
