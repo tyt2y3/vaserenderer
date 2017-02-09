@@ -4,7 +4,7 @@
 			<h1>VASE<span style='line-height:40px;'> renderer</span></h1>
 		</div>
 <h2>About</h2>
-<p>VASE renderer version 0.41 (VASEr 0.41) is a tessellating library for rendering high quality 2D vector graphics. It is an attempt to address unconventional features in 2d graphics. It is intended for OpenGL 1.1+, but much of the code is API independent C++.</p>
+<p>VASE renderer version 0.42 (VASEr 0.42) is a tessellating library for rendering high quality 2D vector graphics. It is an attempt to address unconventional features in 2d graphics. It is intended for OpenGL 1.1+, but much of the code is API independent C++.</p>
 
 <h2>Unconventional features</h2>
 <h3>Per vertex coloring and weighting</h3>
@@ -64,24 +64,26 @@ same as left without wireframe.
 
 <h2>Documentation</h2>
 <div class='textblock'>
-	<a href='getting_started.html'>getting started</a><br>
-	<a href='API.html'>API reference</a><br>
+	<a href='docs/getting_started.html'>getting started</a><br>
+	<a href='docs/API.html'>API reference</a><br>
 	Articles<br>
 	<a href='http://artgrammer.blogspot.com/2011/07/drawing-polylines-by-tessellation.html' target='_blank'>Drawing polylines by tessellation.</a><br>
 	<a href='http://artgrammer.blogspot.hk/2011/05/drawing-nearly-perfect-2d-line-segments.html'>Drawing nearly perfect 2D line segments in OpenGL</a>
 </div>
 
 <h2>License</h2>
-<p>Copyright (2011-2014) Tsang Hao Fung (Chris Tsang) tyt2y3@gmail.com</p>
-<p>This program "VASE Renderer version 0.41" is free software: you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation,  either version 3 of the License, or (at your option) any later version.</p>
+<p>VASE renderer version 0.42 (VASEr 0.42) is licensed under The 3-Clause BSD License.</p>
+<p>Copyright (2011-2016) Tsang Hao Fung (Chris Tsang) tyt2y3@gmail.com</p>
+<p>Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:</p>
 
-<p>This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License for more details.</p>
+<p>1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.</p>
 
-<p>You should have received a copy of the GNU Lesser General Public License
-along with this program.  If not, see <a href='http://www.gnu.org/licenses/lgpl.html'>www.gnu.org</a>.</p>
+<p>2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.</p>
 
-<h3>Credit</h3>
-<ul>
-<li>Bezier curve subdivision code is extracted from Anti-Grain Geometry V2.4 Copyright 2002-2005 Maxim Shemanarev (McSeem) [Modified BSD License]</li>
-</ul>
+<p>3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.</p>
+
+<p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>
+
+<p>Bezier curve subdivision code is extracted from Anti-Grain Geometry V2.4 Copyright 2002-2005 Maxim Shemanarev (McSeem) [Modified BSD License]</p>
+
 </body>
