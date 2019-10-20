@@ -37,7 +37,7 @@
 			float rectangle(float2 samplePosition, float2 halfSize){
 				float2 componentWiseEdgeDistance = abs(samplePosition) - halfSize;
 				float outsideDistance = length(max(componentWiseEdgeDistance, 0));
-				float insideDistance = min(max(componentWiseEdgeDistance.x, componentWiseEdgeDistance.y), 0);
+				float insideDistance = max(componentWiseEdgeDistance.x, componentWiseEdgeDistance.y);
 				return outsideDistance + insideDistance;
 			}
 			struct appdata{
