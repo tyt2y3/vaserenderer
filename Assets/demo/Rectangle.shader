@@ -36,10 +36,9 @@
 
 			float rectangle(float2 samplePosition, float2 halfSize){
 				float2 componentWiseEdgeDistance = abs(samplePosition) - halfSize;
-				float outsideDistance = length(max(componentWiseEdgeDistance, 0));
-				float insideDistance = max(componentWiseEdgeDistance.x, componentWiseEdgeDistance.y);
-				return outsideDistance + insideDistance;
+				return max(componentWiseEdgeDistance.x, componentWiseEdgeDistance.y);
 			}
+
 			struct appdata{
 				float4 vertex : POSITION;
 			};
@@ -60,7 +59,7 @@
 
 			float scene(float2 position) {
 				float2 circlePosition = position;
-				circlePosition = rotate(circlePosition, _Time.y * 0.5);
+				circlePosition = rotate(circlePosition, _Time.y * 0.01);
 				circlePosition = translate(circlePosition, float2(2, 0));
 				float sceneDistance = rectangle(circlePosition, float2(1, 2));
 				return sceneDistance;
