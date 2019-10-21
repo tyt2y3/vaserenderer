@@ -10,20 +10,20 @@ public class Demo : MonoBehaviour {
         List<Color> colors = new List<Color>();
         List<int> indices = new List<int>();
 
-        positions.Add(new Vector3(-1, 0, 1));
-        positions.Add(new Vector3(1, 0, 1));
-        positions.Add(new Vector3(-1, 0, -1));
-        positions.Add(new Vector3(1, 0, -1));
+        positions.Add(new Vector3(-1, 1, 0));
+        positions.Add(new Vector3(1, 1, 0));
+        positions.Add(new Vector3(-1, -1, 0));
+        positions.Add(new Vector3(1, -1, 0));
 
         colors.Add(Color.red);
         colors.Add(Color.green);
         colors.Add(Color.blue);
         colors.Add(Color.yellow);
 
-        texCoord0.Add(new Vector4(0, 1, 0, 0));
+        texCoord0.Add(new Vector4(1, -1, 0, 0));
+        texCoord0.Add(new Vector4(-1, -1, 0, 0));
         texCoord0.Add(new Vector4(1, 1, 0, 0));
-        texCoord0.Add(new Vector4(1, 0, 0, 0));
-        texCoord0.Add(new Vector4(0, 0, 0, 0));
+        texCoord0.Add(new Vector4(-1, 1, 0, 0));
 
         indices.Add(0);
         indices.Add(1);

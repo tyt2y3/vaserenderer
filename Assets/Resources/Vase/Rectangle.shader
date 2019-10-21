@@ -1,15 +1,22 @@
 ﻿Shader "Rectangle" {
 
+    Properties
+    {
+        _Feather ("Feather", Float) = 1.0
+    }
+
     SubShader {
-        //the material is completely non-transparent and is rendered at the same time as the other opaque geometry
-        Tags { "RenderType"="Opaque" "Queue"="Geometry" }
+        Tags { "Queue"="Transparent" "RenderType"="Transparent" "IgnoreProjector"="True" }
 
         Pass
         {
+            ZWrite Off
+            Blend SrcAlpha OneMinusSrcAlpha
+
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
-            
+
             #include "UnityCG.cginc"
 
             struct appdata {
@@ -32,8 +39,15 @@
                 return o;
             }
 
+            float _Feather;
+
             fixed4 frag (v2f i) : SV_Target {
-                return i.color;
+                float fact = max(abs(i.uv.x), abs(i.uv.y));
+                fixed4 col = i.color;
+                fact = 1-fact;
+                fact = min(fact / max(_Feather, 0.01), 1);
+                col.a = fact;
+                return col;
             }
             ENDCG
         }
