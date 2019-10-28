@@ -13,34 +13,24 @@ namespace Vaser
         public const int GL_TRIANGLE_STRIP = 6;
         public const int GL_TRIANGLE_FAN = 7;
 
-        public int count { get; private set; } = 0; //counter
         public int glmode { get; set; } = GL_TRIANGLES; //drawing mode in opengl
         private bool jumping = false;
-        private List<float> vert = new List<float>(); //because it holds 2d vectors
+        private List<Vector3> vert = new List<Vector3>();
         private List<Color> color = new List<Color>();
+        private List<bool> fade = new List<bool>();
 
         public void SetGlDrawMode(int gl_draw_mode)
         {
             glmode = gl_draw_mode;
         }
 
-        public int Push(Point P, Color cc, bool trans = false)
+        public int Push(Point P, Color cc, bool fade0=false)
         {
-            int cur = count;
-            vert.Add(P.x);
-            vert.Add(P.y);
-            if (!trans) {
-                color.Add(cc);
-            } else {
-                Color ccc = new Color();
-                ccc.r = cc.r;
-                ccc.g = cc.g;
-                ccc.b = cc.b;
-                ccc.a = 0;
-                color.Add(ccc);
-            }
+            int cur = vert.Count;
+            vert.Add(new Vector3(P.x, P.y, 0));
+            color.Add(cc);
+            fade.Add(fade0);
 
-            count++;
             if (jumping)
             {
                 jumping = false;
@@ -52,36 +42,31 @@ namespace Vaser
         public void Push3(
                 Point P1, Point P2, Point P3,
                 Color C1, Color C2, Color C3,
-                bool trans1 = false, bool trans2 = false, bool trans3 = false)
+                bool fade1=false, bool fade2=false, bool fade3=false)
         {
-            Push(P1, C1, trans1);
-            Push(P2, C2, trans2);
-            Push(P3, C3, trans3);
+            Push(P1, C1, fade1);
+            Push(P2, C2, fade2);
+            Push(P3, C3, fade3);
         }
 
         public void Push(VertexArrayHolder hold)
         {
             if (glmode == hold.glmode)
             {
-                count += hold.count;
                 vert.AddRange(hold.vert);
                 color.AddRange(hold.color);
             }
             else if (glmode == GL_TRIANGLES &&
                 hold.glmode == GL_TRIANGLE_STRIP)
             {
-                for (int b=2; b < hold.count; b++)
+                for (int b=3; b < hold.vert.Count; b+=2)
                 {
-                    for ( int k=0; k<3; k++, count++)
-                    {
-                        int B = b-2 + k;
-                        vert.Add(hold.vert[B*2]);
-                        vert.Add(hold.vert[B*2+1]);
-                        color.Add(hold.color[B*4]);
-                        color.Add(hold.color[B*4+1]);
-                        color.Add(hold.color[B*4+2]);
-                        color.Add(hold.color[B*4+3]);
-                    }
+                    vert.Add(hold.vert[b-3]); color.Add(hold.color[b-3]); fade.Add(false);
+                    vert.Add(hold.vert[b-2]); color.Add(hold.color[b-2]); fade.Add(false);
+                    vert.Add(hold.vert[b-1]); color.Add(hold.color[b-1]); fade.Add(hold.fade[b-1]);
+                    vert.Add(hold.vert[b-1]); color.Add(hold.color[b-1]); fade.Add(false);
+                    vert.Add(hold.vert[b-2]); color.Add(hold.color[b-2]); fade.Add(hold.fade[b-0]);
+                    vert.Add(hold.vert[b-0]); color.Add(hold.color[b-0]); fade.Add(false);
                 }
             }
         }
@@ -89,8 +74,8 @@ namespace Vaser
         public Point Get(int i)
         {
             Point P = new Point();
-            P.x = vert[i*2];
-            P.y = vert[i*2+1];
+            P.x = vert[i].x;
+            P.y = vert[i].y;
             return P;
         }
 
@@ -102,6 +87,7 @@ namespace Vaser
         public Point GetRelativeEnd(int di = -1)
         {
             //di=-1 is the last one
+            int count = vert.Count;
             int i = count+di;
             if (i<0) i=0;
             if (i>=count) i=count-1;
@@ -110,14 +96,8 @@ namespace Vaser
 
         public void RepeatLastPush()
         {
-            Point P = new Point();
-            Color cc = new Color();
-
-            int i = count-1;
-
-            P.x = vert[i*2];
-            P.y = vert[i*2+1];
-            Push(P, GetColor(i));
+            int i = vert.Count-1;
+            Push(Get(i), GetColor(i));
         }
 
         public void Jump() //to make a jump in triangle strip by degenerated triangles
@@ -131,15 +111,7 @@ namespace Vaser
 
         public List<Vector3> GetVertices()
         {
-            List<Vector3> vertices = new List<Vector3>();
-            if (glmode == GL_TRIANGLES)
-            {
-                for (int i=1; i<vert.Count; i+=2)
-                {
-                    vertices.Add(new Vector3(vert[i-1], vert[i], 0));
-                }
-            }
-            return vertices;
+            return vert;
         }
 
         public List<int> GetTriangles()
@@ -147,8 +119,7 @@ namespace Vaser
             List<int> indices = new List<int>();
             if (glmode == GL_TRIANGLES)
             {
-                int count = vert.Count / 2;
-                for (int i = 0; i < count; i++)
+                for (int i=0; i < vert.Count; i++)
                 {
                     indices.Add(i);
                 }
@@ -162,29 +133,87 @@ namespace Vaser
             Point A = new Point();
             Point B = new Point();
             Point C = new Point();
+            Point U = new Point();
+            Point V = new Point();
             Point X = new Point();
-            Point Y = new Point();
-            Point Z = new Point();
-            Point UV = new Point();
+            Vector4 SE = new Vector4(1, -1, 0, 0);
+            Vector4 SW = new Vector4(-1, -1, 0, 0);
+            Vector4 NE = new Vector4(1, 1, 0, 0);
+            Vector4 NW = new Vector4(-1, 1, 0, 0);
+            Vector4 N = new Vector4(0, 1, 0, 0);
+            Vector4 E = new Vector4(1, 0, 0, 0);
+            Vector4 S = new Vector4(0, -1, 0, 0);
+            Vector4 W = new Vector4(-1, 0, 0, 0);
+            Vector4 O = new Vector4(0, 0, 0, 0);
             if (glmode == GL_TRIANGLES)
             {
-                for (int i = 5; i < vert.Count; i += 6)
+                for (int i=2; i < fade.Count; i+=3)
                 {
-                    A.x = vert[i-5]; A.y = vert[i-4];
-                    B.x = vert[i-3]; B.y = vert[i-2];
-                    C.x = vert[i-1]; C.y = vert[i-0];
-                    X = B - A;
-                    Y = C - B;
-                    Z = A - C;
-                    UV = X - Z;
-                    UV.normalize();
-                    uvs.Add(new Vector4(UV.x, UV.y, 0, 0));
-                    UV = Y - X;
-                    UV.normalize();
-                    uvs.Add(new Vector4(UV.x, UV.y, 0, 0));
-                    UV = Z - Y;
-                    UV.normalize();
-                    uvs.Add(new Vector4(UV.x, UV.y, 0, 0));
+                    if (!fade[i-2] && !fade[i-1] && !fade[i-0]) {
+                        uvs.Add(O);
+                        uvs.Add(O);
+                        uvs.Add(O);
+                        continue;
+                    }
+                    A = Get(i-2);
+                    B = Get(i-1);
+                    C = Get(i-0);
+                    bool fadeU = false;
+                    bool fadeV = false;
+                    for (int j=0; j < 3; j++)
+                    {
+                        if (j == 0) {
+                            U = B - A;
+                            V = C - A;
+                            fadeU = fade[i-2];
+                            fadeV = fade[i-0];
+                        } else if (j == 1) {
+                            V = -U;
+                            U = C - B;
+                            fadeU = fade[i-1];
+                            fadeV = fade[i-2];
+                        } else if (j == 2) {
+                            V = -U;
+                            U = A - C;
+                            fadeV = fade[i-1];
+                            fadeU = fade[i-0];
+                        }
+                        if (fadeU && fadeV) {
+                            Debug.Log("fade both");
+                            X = U + V;
+                            if (X.x > 0 && X.y > 0) {
+                                uvs.Add(NE);
+                            } else if (X.x < 0 && X.y > 0) {
+                                uvs.Add(NW);
+                            } else if (X.x > 0 && X.y < 0) {
+                                uvs.Add(SE);
+                            } else if (X.x < 0 && X.y < 0) {
+                                uvs.Add(SW);
+                            }
+                        } else if (fadeU) {
+                            Debug.Log("fadeU");
+                            if (V.x > 0 && V.y > 0) {
+                                uvs.Add(NE);
+                            } else if (V.x < 0 && V.y > 0) {
+                                uvs.Add(NW);
+                            } else if (V.x > 0 && V.y < 0) {
+                                uvs.Add(SE);
+                            } else if (V.x < 0 && V.y < 0) {
+                                uvs.Add(SW);
+                            }
+                        } else if (fadeV) {
+                            Debug.Log("fadeV");
+                            if (U.x > 0 && U.y > 0) {
+                                uvs.Add(NE);
+                            } else if (U.x < 0 && U.y > 0) {
+                                uvs.Add(NW);
+                            } else if (U.x > 0 && U.y < 0) {
+                                uvs.Add(SE);
+                            } else if (U.x < 0 && U.y < 0) {
+                                uvs.Add(SW);
+                            }
+                        }
+                    }
                 }
             }
             return uvs;
@@ -194,33 +223,5 @@ namespace Vaser
         {
             return color;
         }
-
-        /*public void draw_triangles()
-        {
-            Color col={1 , 0, 0, 0.5};
-            if (glmode == GL_TRIANGLES)
-            {
-                for (int i=0; i<count; i++)
-                {
-                    Point P[4];
-                    P[0] = get(i); i++;
-                    P[1] = get(i); i++;
-                    P[2] = get(i);
-                    P[3] = P[0];
-                    polyline((Vec2*)P,col,1.0,4,0);
-                }
-            }
-            else if (glmode == GL_TRIANGLE_STRIP)
-            {
-                for (int i=2; i<count; i++)
-                {
-                    Point P[3];
-                    P[0] = get(i-2);
-                    P[1] = get(i);
-                    P[2] = get(i-1);
-                    polyline((Vec2*)P,col,1.0,3,0);
-                }
-            }
-        }*/
     }
 }
