@@ -160,7 +160,7 @@ namespace Vaser
                     C = Get(i-0);
                     bool fadeU = false;
                     bool fadeV = false;
-                    for (int j=0; j < 3; j++)
+                    for (int j=0; j<3; j++)
                     {
                         if (j == 0) {
                             U = B - A;
