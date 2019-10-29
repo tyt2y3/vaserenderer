@@ -364,8 +364,6 @@ namespace Vaser
 
                     if (d180_degree | result3 == 0)
                     {   //to solve visual bugs 3 and 1.1
-                        //efficiency: if color and weight is same as previous and next point
-                        // ,do not generate vertices
                         SL[i].vP=SL[i].T;
                         SL[i].T1.follow_signs(SL[i].T);
                         SL[i].djoint=polyline_opt.PLJ_miter;
@@ -445,12 +443,13 @@ namespace Vaser
                 switch (SL[1].djoint)
                 {
                     case polyline_opt.PLJ_miter:
-                        tris.Push3(P2,  P5,  P0, C[1], C[1], C[1]);
-                    goto case polyline_opt.PLJ_bevel;
+                        tris.Push3(P2, P0, P1, C[1], C[1], C[1], 1, 0, 0);
+                        tris.Push3(P1, P0, P5, C[1], C[1], C[1], 0, 1, 0);
+                    break;
 
                     case polyline_opt.PLJ_bevel:
                         if (normal_line_core_joint==1)
-                        tris.Push3(P2,  P5,  P1, C[1], C[1], C[1], 1, 0, 0);
+                        tris.Push3(P2, P5, P1, C[1], C[1], C[1], 1, 0, 0);
                     break;
 
                     case polyline_opt.PLJ_round: {

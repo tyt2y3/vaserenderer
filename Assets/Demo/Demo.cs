@@ -49,7 +49,9 @@ public class Demo : MonoBehaviour {
         SA.W[1] = 0.25f;
         SA.W[2] = 0.25f;
 
-        Polyline.Anchor(SA, new Polyline.polyline_opt(), false, false);
+        Polyline.polyline_opt opt = new Polyline.polyline_opt();
+        opt.joint = Polyline.polyline_opt.PLJ_miter;
+        Polyline.Anchor(SA, opt, false, false);
         VertexArrayHolder vah = SA.vah;
         //*/
 

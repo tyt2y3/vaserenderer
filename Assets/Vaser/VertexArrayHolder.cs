@@ -153,10 +153,14 @@ namespace Vaser
                     if (fade[i-2] > 0) count++;
                     if (fade[i-1] > 0) count++;
                     if (fade[i-0] > 0) count++;
-                    if (count == 0 || count == 3) {
+                    if (count == 0) {
                         uvs.Add(UVS[0]);
                         uvs.Add(UVS[0]);
                         uvs.Add(UVS[0]);
+                    } else if (count == 3) {
+                        uvs.Add(UVS[1]);
+                        uvs.Add(UVS[5]);
+                        uvs.Add(UVS[3]);
                     } else if (count == 2) {
                         int fadeU = 0;
                         int fadeV = 0;
