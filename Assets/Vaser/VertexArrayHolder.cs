@@ -132,16 +132,17 @@ namespace Vaser
             List<Vector4> uvs = new List<Vector4>();
             Vector4[] UVS = new Vector4[]
             {
-                new Vector4(0, 0, 0, 0),
-                new Vector4(1, 0, 0, 0),
-                new Vector4(1, 1, 0, 0),
-                new Vector4(0, 1, 0, 0),
-                new Vector4(-1, 1, 0, 0),
-                new Vector4(-1, 0, 0, 0),
-                new Vector4(-1, -1, 0, 0),
-                new Vector4(0, -1, 0, 0),
-                new Vector4(1, -1, 0, 0),
-                new Vector4(1, 0, -1, 0),
+                new Vector4(0, 0, 1, 0),
+                new Vector4(1, 0, 1, 0),
+                new Vector4(1, 1, 1, 0),
+                new Vector4(0, 1, 1, 0),
+                new Vector4(-1, 1, 1, 0),
+                new Vector4(-1, 0, 1, 0),
+                new Vector4(-1, -1, 1, 0),
+                new Vector4(0, -1, 1, 0),
+                new Vector4(1, -1, 1, 0),
+                new Vector4(1, 0, 2, 0),
+                new Vector4(1, 0, 0.25f, 0),
             };
 
             if (glmode == GL_TRIANGLES)
@@ -186,21 +187,48 @@ namespace Vaser
                         fade[i-2] >= 0 && fade[i-1] >= 0 && fade[i-0] >= 0) {
                         int fadeU = 0;
                         int fadeV = 0;
+                        Point A = Get(i-2);
+                        Point B = Get(i-1);
+                        Point C = Get(i-0);
+                        Point U = B - A;
+                        Point V = C - B;
                         for (int j=0; j<3; j++)
                         {
+                            float ratio = 0;
                             if (j == 0) {
+                                U = B - A;
+                                V = C - A;
+                                if (V.length() > 0) {
+                                    ratio = U.length() / V.length();
+                                }
                                 fadeU = fade[i-2];
                                 fadeV = fade[i-0];
                             } else if (j == 1) {
+                                V = -U;
+                                U = C - B;
+                                if (V.length() > 0) {
+                                    ratio = U.length() / V.length();
+                                }
                                 fadeU = fade[i-1];
                                 fadeV = fade[i-2];
                             } else if (j == 2) {
+                                V = -U;
+                                U = A - C;
+                                if (V.length() > 0) {
+                                    ratio = U.length() / V.length();
+                                }
                                 fadeV = fade[i-1];
                                 fadeU = fade[i-0];
                             }
                             if (fadeU > 0 || fadeV > 0) {
-                                Debug.Log("fade");
-                                uvs.Add(UVS[1]);
+                                Debug.Log("fade side");
+                                if ((fadeU > 0 && ratio > 4.0) ||
+                                    (fadeV > 0 && ratio < 0.25)) {
+                                    // this triangle is so short that we want to fade more
+                                    uvs.Add(UVS[10]);
+                                } else {
+                                    uvs.Add(UVS[1]);
+                                }
                             } else {
                                 Debug.Log("corner fade");
                                 uvs.Add(UVS[5]);

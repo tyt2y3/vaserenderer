@@ -421,13 +421,13 @@ namespace Vaser
             if (SL[1].degenT)
             {
                 P1 = SL[1].PT;
-                tris.Push3(P1, P3, P2, C[1], C[0], C[1]); //fir seg
-                tris.Push3(P1, P5, P6, C[1], C[1], C[2]); //las seg
+                tris.Push3(P1, P3, P2, C[1], C[0], C[1], 0, 1, 0); //fir seg
+                tris.Push3(P1, P5, P6, C[1], C[1], C[2], 0, 1, 0); //las seg
 
                 if (SL[1].pre_full) {
-                    tris.Push3(P3, P1, P4, C[0], C[1], C[0]);
+                    tris.Push3(P3, P1, P4, C[0], C[1], C[0], 0, 1, 0);
                 } else {
-                    tris.Push3(P1, P6, P7, C[1], C[2], C[2]);
+                    tris.Push3(P1, P6, P7, C[1], C[2], C[2], 0, 0, 1);
                 }
             }
             else

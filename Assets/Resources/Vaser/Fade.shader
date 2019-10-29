@@ -44,9 +44,7 @@
             fixed4 frag (v2f i) : SV_Target {
                 fixed4 col = i.color;
                 float fact = max(abs(i.uv.x), abs(i.uv.y));
-                if (i.uv.z < 0) {
-                    fact = fact*2-1;
-                }
+                fact = fact*i.uv.z - (i.uv.z-1);
                 if (_Feather == 0) {
                     return col;
                 }
