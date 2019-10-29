@@ -1,4 +1,4 @@
-﻿Shader "Rectangle" {
+﻿Shader "Fade" {
 
     Properties
     {
@@ -42,8 +42,11 @@
             float _Feather;
 
             fixed4 frag (v2f i) : SV_Target {
-                float fact = max(abs(i.uv.x), abs(i.uv.y));
                 fixed4 col = i.color;
+                float fact = max(abs(i.uv.x), abs(i.uv.y));
+                if (fact > 1) {
+                    fact = (fact-1)*2-1;
+                }
                 if (_Feather == 0) {
                     return col;
                 }

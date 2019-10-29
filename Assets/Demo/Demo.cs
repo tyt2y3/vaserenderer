@@ -24,6 +24,6 @@ public class Demo : MonoBehaviour {
         GameObject gameObject = new GameObject("Mesh", typeof(MeshFilter), typeof(MeshRenderer));
         gameObject.transform.localScale = new Vector3(1,1,1);
         gameObject.GetComponent<MeshFilter>().mesh = mesh;
-        gameObject.GetComponent<MeshRenderer>().material = Resources.Load<Material>("Vaser/Rectangle");
+        gameObject.GetComponent<MeshRenderer>().material = Resources.Load<Material>("Vaser/Fade");
     }
 }
