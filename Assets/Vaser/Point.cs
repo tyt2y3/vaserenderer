@@ -196,7 +196,8 @@ namespace Vaser
         public static bool anchor_outward(ref Point V, Point b, Point c, bool reverse=false)
         {   //put the correct outward vector at V, with V placed on b, comparing distances from c
             bool determinant = anchor_outward_D ( V,b,c);
-            if ( determinant == (!reverse)) { //when reverse==true, it means inward
+            if ( determinant == (!reverse)) {
+                //when reverse==true, it means inward
                 //positive V is the outward vector
                 return false;
             } else {

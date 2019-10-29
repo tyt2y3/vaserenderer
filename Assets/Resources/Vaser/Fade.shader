@@ -10,7 +10,7 @@
 
         Pass
         {
-            ZWrite Off
+            ZWrite On
             Blend SrcAlpha OneMinusSrcAlpha
 
             CGPROGRAM

@@ -129,6 +129,12 @@ namespace Vaser
             Color[] C = SA.C;
             float[] weight = SA.W;
             st_polyline[] SL = SA.SL;
+            if (Point.signed_area(P[0], P[1], P[2]) > 0) {
+                // rectify clockwise
+                P = new Point[3] {P[2], P[1], P[0]};
+                C = new Color[3] {C[2], C[1], C[0]};
+                weight = new float[3] {weight[2], weight[1], weight[0]};
+            }
 
             //const float critical_angle=11.6538;
             //  critical angle in degrees where a miter is force into bevel
@@ -383,7 +389,7 @@ namespace Vaser
             /*if (cap_first || cap_last) {
                 anchor_cap(SA.P,SA.C, SA.SL,SA.vah, SA.cap_start,SA.cap_end);
             }*/
-            AnchorLate(SA.P, SA.C, SA.SL, SA.vah, SA.cap_start, SA.cap_end);
+            AnchorLate(P, C, SA.SL, SA.vah, SA.cap_start, SA.cap_end);
         } //anchor
 
         public static void AnchorLate(
@@ -415,11 +421,11 @@ namespace Vaser
             if (SL[1].degenT)
             {
                 P1 = SL[1].PT;
-                tris.Push3(P3, P2, P1, C[0], C[1], C[1]); //fir seg
+                tris.Push3(P1, P3, P2, C[1], C[0], C[1]); //fir seg
                 tris.Push3(P1, P5, P6, C[1], C[1], C[2]); //las seg
 
                 if (SL[1].pre_full) {
-                    tris.Push3(P1, P3, P4, C[1], C[0], C[0]);
+                    tris.Push3(P3, P1, P4, C[0], C[1], C[0]);
                 } else {
                     tris.Push3(P1, P6, P7, C[1], C[2], C[2]);
                 }
@@ -427,11 +433,11 @@ namespace Vaser
             else
             {
                 // normal first segment
-                tris.Push3(P2, P4, P3, C[1], C[0], C[0]);
-                tris.Push3(P4, P2, P1, C[0], C[1], C[1]);
+                tris.Push3(P2, P4, P3, C[1], C[0], C[0], 0, 0, 1);
+                tris.Push3(P4, P2, P1, C[0], C[1], C[1], 0, 0, 1);
                 // normal last segment
-                tris.Push3(P5, P7, P1, C[1], C[2], C[1]);
-                tris.Push3(P7, P5, P6, C[2], C[1], C[2]);
+                tris.Push3(P5, P7, P1, C[1], C[2], C[1], 0, 1, 0);
+                tris.Push3(P7, P5, P6, C[2], C[1], C[2], 0, 1, 0);
             }
 
             if (normal_line_core_joint != 0)
@@ -444,7 +450,7 @@ namespace Vaser
 
                     case polyline_opt.PLJ_bevel:
                         if (normal_line_core_joint==1)
-                        tris.Push3(P2,  P5,  P1, C[1], C[1], C[1]);
+                        tris.Push3(P2,  P5,  P1, C[1], C[1], C[1], 1, 0, 0);
                     break;
 
                     case polyline_opt.PLJ_round: {
