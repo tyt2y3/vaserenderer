@@ -5,6 +5,8 @@ namespace Vaser
 {
     public class Polyline
     {
+        const float cri_core_adapt = 0.0001f;
+
         public class polyline_opt
         {
             //const tessellator_opt* tess;
@@ -31,7 +33,7 @@ namespace Vaser
         }
 
         public struct st_polyline
-        // to hold info for anchor_late() to perform triangluation
+        // to hold info for AnchorLate() to perform triangluation
         {
             //for all joints
             public Point vP; //vector to intersection point
@@ -67,10 +69,10 @@ namespace Vaser
             public Color[] C = new Color[3]; //color
             public float[] W = new float[3]; //weight
 
-            public Point cap_start;
-            public Point cap_end;
+            public Point cap_start = new Point();
+            public Point cap_end = new Point();
             public st_polyline[] SL = new st_polyline[3];
-            public VertexArrayHolder vah;
+            public VertexArrayHolder vah = new VertexArrayHolder();
         }
 
         private static void determine_t_r(float w, ref float t, ref float R)
@@ -78,23 +80,7 @@ namespace Vaser
             //efficiency: can cache one set of w,t,R values
             // i.e. when a polyline is of uniform thickness, the same w is passed in repeatedly
             float f = w - (float)System.Math.Floor(w);
-
-            /*   */if ( w>=0.0f && w<1.0f) {
-                t=0.05f; R=0.768f; R=0.0f;
-            } else if ( w>=1.0f && w<2.0f) {
-                t=0.05f+f*0.33f; R=0.768f+0.312f*f;
-            } else if ( w>=2.0f && w<3.0f){
-                t=0.38f+f*0.58f; R=1.08f;
-            } else if ( w>=3.0f && w<4.0f){
-                t=0.96f+f*0.48f; R=1.08f;
-            } else if ( w>=4.0f && w<5.0f){
-                t=1.44f+f*0.46f; R=1.08f;
-            } else if ( w>=5.0f && w<6.0f){
-                t=1.9f+f*0.6f; R=1.08f;
-            } else if ( w>=6.0f){
-                float ff=w-6.0f;
-                t=2.5f+ff*0.50f; R=1.08f;
-            }
+            t = w; R = 0f;
         }
 
         private static void make_T_R_C(
@@ -129,17 +115,12 @@ namespace Vaser
                 }
             }
 
-            //output t,r
+            //output
             tt = t;
-            rr = r;
-
-            //calculate T,R,C
             dist = DP.normalize();
             C = DP;
             DP.perpen();
-
             T = DP*t;
-            R = DP*r;
         }
 
         public static void Anchor(st_anchor SA, polyline_opt opt, bool cap_first, bool cap_last)
@@ -148,7 +129,6 @@ namespace Vaser
             Color[] C = SA.C;
             float[] weight = SA.W;
             st_polyline[] SL = SA.SL;
-            SA.vah.SetGlDrawMode(VertexArrayHolder.GL_TRIANGLES);
 
             //const float critical_angle=11.6538;
             //  critical angle in degrees where a miter is force into bevel
@@ -170,32 +150,28 @@ namespace Vaser
                 return 0;
             }*/
 
-            Point T1=new Point(),T2=new Point(),T21=new Point(),T31=new Point(); //]these are for calculations in early stage
-            Point R1=new Point(),R2=new Point(),R21=new Point(),R31=new Point(); //]
+            Point T1=new Point(), T2=new Point(), T21=new Point(), T31=new Point(), RR=new Point();
 
-            for (int i=0; i<3; i++)
+            /*for (int i=0; i<3; i++)
             {   //lower the transparency for weight < 1.0
                 if (weight[i]>=0.0 && weight[i]<1.0)
                 {
                     float f=weight[i];
                     C[i].a *=f;
                 }
-            }
+            }*/
 
             {
                 int i=0;
 
-                Point cap0=new Point(),cap1=new Point();
+                Point cap0=new Point(), cap1=new Point();
                 float r=0f,t=0f,d=0f;
-                make_T_R_C(ref P[i], ref P[i+1], ref T2, ref R2, ref cap1, weight[i], opt, ref r, ref t, ref d);
+                make_T_R_C(ref P[i], ref P[i+1], ref T2, ref RR, ref cap1, weight[i], opt, ref r, ref t, ref d);
                 if (varying_weight) {
-                make_T_R_C(ref P[i], ref P[i+1], ref T31, ref R31, ref cap0, weight[i+1], opt, ref d, ref d, ref d);
+                make_T_R_C(ref P[i], ref P[i+1], ref T31, ref RR, ref cap0, weight[i+1], opt, ref d, ref d, ref d);
                 } else {
                     T31 = T2;
-                    R31 = R2;
                 }
-                Point.anchor_outward(ref R2, P[i+1], P[i+2]);
-                    T2.follow_signs(R2);
 
                 SL[i].bR = cap1;
 
@@ -209,24 +185,20 @@ namespace Vaser
                     cap1*=opt.feathering;
                     SA.cap_start = cap1;
                 }
-                
+
                 SL[i].djoint=opt.cap;
                 SL[i].T=T2;
-                SL[i].R=R2;
                 SL[i].t=(float)t;
-                SL[i].r=(float)r;
                 SL[i].degenT = false;
-                SL[i].degenR = false;
-                
+
                 SL[i+1].T1=T31;
-                SL[i+1].R1=R31;
             }
 
             if (cap_last)
             {
                 int i=2;
 
-                Point cap0=new Point(),cap2=new Point();
+                Point cap0=new Point(), cap2=new Point();
                 float t=0f,r=0f,d=0f;
                 make_T_R_C(ref P[i-1], ref P[i], ref cap0, ref cap0, ref cap2, weight[i], opt, ref r, ref t, ref d);
                 if (opt.cap==polyline_opt.PLC_square)
@@ -235,7 +207,7 @@ namespace Vaser
                 }
 
                 SL[i].bR=cap2;
-                
+
                 if (opt.feather && !opt.no_feather_at_cap)
                     cap2*=opt.feathering;
                 SA.cap_end = cap2;
@@ -257,32 +229,26 @@ namespace Vaser
                 {
                 Point cap0=new Point(), bR=new Point();
                 float length_cur=0f, length_nxt=0f, d=0f;
-                make_T_R_C(ref P_las, ref P_cur, ref T1, ref R1, ref cap0, weight[i-1], opt, ref d, ref d, ref length_cur);
+                make_T_R_C(ref P_las, ref P_cur, ref T1, ref RR, ref cap0, weight[i-1], opt, ref d, ref d, ref length_cur);
                 if (varying_weight) {
-                make_T_R_C(ref P_las, ref P_cur, ref T21, ref R21, ref cap0, weight[i], opt, ref d, ref d, ref d);
+                make_T_R_C(ref P_las, ref P_cur, ref T21, ref RR, ref cap0, weight[i], opt, ref d, ref d, ref d);
                 } else {
                     T21 = T1;
-                    R21 = R1;
                 }
 
-                make_T_R_C(ref P_cur, ref P_nxt, ref T2, ref R2, ref bR, weight[i], opt, ref r, ref t, ref length_nxt);
+                make_T_R_C(ref P_cur, ref P_nxt, ref T2, ref RR, ref bR, weight[i], opt, ref r, ref t, ref length_nxt);
                 if (varying_weight) {
-                make_T_R_C(ref P_cur, ref P_nxt, ref T31, ref R31, ref cap0, weight[i+1], opt, ref d, ref d, ref d);
+                make_T_R_C(ref P_cur, ref P_nxt, ref T31, ref RR, ref cap0, weight[i+1], opt, ref d, ref d, ref d);
                 } else {
                     T31 = T2;
-                    R31 = R2;
                 }
 
                 SL[i].T=T2;
-                SL[i].R=R2;
                 SL[i].bR=bR;
                 SL[i].t=t;
-                SL[i].r=r;
                 SL[i].degenT = false;
-                SL[i].degenR = false;
 
                 SL[i+1].T1=T31;
-                SL[i+1].R1=R31;
                 }
 
                 {   //2nd to 2nd last point
@@ -311,17 +277,11 @@ namespace Vaser
                     }
 
                     Point.anchor_outward(ref T1, P_cur,P_nxt);
-                        R1.follow_signs(T1);
                     Point.anchor_outward(ref T21, P_cur,P_nxt);
-                        R21.follow_signs(T21);
                         SL[i].T1.follow_signs(T21);
-                        SL[i].R1.follow_signs(T21);
                     Point.anchor_outward(ref T2, P_cur,P_las);
-                        R2.follow_signs(T2);
                         SL[i].T.follow_signs(T2);
-                        SL[i].R.follow_signs(T2);
                     Point.anchor_outward(ref T31, P_cur,P_las);
-                        R31.follow_signs(T31);
 
                     {   //must do intersection
                         Point interP=new Point(), vP=new Point();
@@ -333,28 +293,22 @@ namespace Vaser
                         if (result3 != 0) {
                             vP = interP - P_cur;
                             SL[i].vP=vP;
-                            SL[i].vR=vP*(r/t);
                         } else {
                             SL[i].vP=SL[i].T;
-                            SL[i].vR=SL[i].R;
                             Debug.Log("intersection failed: cos(angle)=%.4f, angle=%.4f(degree)"/*, cos_tho, System.Math.Acos(cos_tho)*180/3.14159*/);
                         }
                     }
 
-                    T1.opposite();      //]inward
-                        R1.opposite();
+                    T1.opposite();
                     T21.opposite();
-                        R21.opposite();
                     T2.opposite();
-                        R2.opposite();
                     T31.opposite();
-                        R31.opposite();
 
                     //make intersections
-                    Point PT1=new Point(),PT2=new Point();
+                    Point PT1=new Point(), PT2=new Point();
                     float pt1=0f,pt2=0f;
                     float[] pts = new float[2];
-                    //
+
                     int result1t = Point.intersect(
                                 P_nxt-T31, P_nxt+T31,
                                 P_las+T1, P_cur+T21, //knife1_a
@@ -367,9 +321,6 @@ namespace Vaser
                     pt2 = pts[1];
                     bool is_result1t = result1t == 1;
                     bool is_result2t = result2t == 1;
-                    //
-                    bool inner_sec = Point.intersecting(P_las+T1+R1, P_cur+T21+R21,
-                                P_nxt+T31+R31, P_cur+T2+R2);
                     //
                     /*if (zero_degree)
                     {
@@ -409,12 +360,8 @@ namespace Vaser
                     {   //to solve visual bugs 3 and 1.1
                         //efficiency: if color and weight is same as previous and next point
                         // ,do not generate vertices
-                        same_side_of_line(ref SL[i].R, SL[i-1].R, P_cur, P_las);
-                            SL[i].T.follow_signs(SL[i].R);
                         SL[i].vP=SL[i].T;
                         SL[i].T1.follow_signs(SL[i].T);
-                        SL[i].R1.follow_signs(SL[i].T);
-                        SL[i].vR=SL[i].R;
                         SL[i].djoint=polyline_opt.PLJ_miter;
                     }
                 } //2nd to 2nd last point
@@ -425,26 +372,109 @@ namespace Vaser
 
                 Point cap0=new Point();
                 float r=0f,t=0f,d=0f;
-                make_T_R_C(ref P[i-1], ref P[i], ref T2, ref R2, ref cap0, weight[i], opt, ref r, ref t, ref d);
-                    same_side_of_line(ref R2, SL[i-1].R, P[i-1], P[i]);
-                        T2.follow_signs(R2);
+                make_T_R_C(ref P[i-1], ref P[i], ref T2, ref RR, ref cap0, weight[i], opt, ref r, ref t, ref d);
 
                 SL[i].djoint=opt.cap;
                 SL[i].T=T2;
-                SL[i].R=R2;
                 SL[i].t=(float)t;
-                SL[i].r=(float)r;
                 SL[i].degenT = false;
-                SL[i].degenR = false;
             }
 
             /*if (cap_first || cap_last) {
                 anchor_cap(SA.P,SA.C, SA.SL,SA.vah, SA.cap_start,SA.cap_end);
-            }
-            anchor_late(SA.P,SA.C, SA.SL,SA.vah, SA.cap_start,SA.cap_end);
-            */
-            return;
+            }*/
+            AnchorLate(SA.P, SA.C, SA.SL, SA.vah, SA.cap_start, SA.cap_end);
         } //anchor
+
+        public static void AnchorLate(
+                Point[] P, Color[] C, st_polyline[] SL,
+                VertexArrayHolder tris,
+                Point cap1, Point cap2)
+        {
+            Point P_0 = P[0], P_1 = P[1], P_2 = P[2];
+            if (SL[0].djoint==polyline_opt.PLC_butt || SL[0].djoint==polyline_opt.PLC_square)
+                P_0 -= cap1;
+            if (SL[2].djoint==polyline_opt.PLC_butt || SL[2].djoint==polyline_opt.PLC_square)
+                P_2 -= cap2;
+
+            Point P0, P1, P2, P3, P4, P5, P6, P7;
+
+            P0 = P_1 + SL[1].vP;
+            P1 = P_1 - SL[1].vP;
+
+            P2 = P_1 + SL[1].T1;
+            P3 = P_0 + SL[0].T;
+            P4 = P_0 - SL[0].T;
+
+            P5 = P_1 + SL[1].T;
+            P6 = P_2 + SL[2].T;
+            P7 = P_2 - SL[2].T;
+
+            int normal_line_core_joint = 1; //0:dont draw, 1:draw, 2:outer only
+
+            if (SL[1].degenT)
+            {
+                P1 = SL[1].PT;
+                tris.Push3(P3, P2, P1, C[0], C[1], C[1]); //fir seg
+                tris.Push3(P1, P5, P6, C[1], C[1], C[2]); //las seg
+
+                if (SL[1].pre_full) {
+                    tris.Push3(P1, P3, P4, C[1], C[0], C[0]);
+                } else {
+                    tris.Push3(P1, P6, P7, C[1], C[2], C[2]);
+                }
+            }
+            else
+            {
+                // normal first segment
+                tris.Push3(P2, P4, P3, C[1], C[0], C[0]);
+                tris.Push3(P4, P2, P1, C[0], C[1], C[1]);
+                // normal last segment
+                tris.Push3(P5, P7, P1, C[1], C[2], C[1]);
+                tris.Push3(P7, P5, P6, C[2], C[1], C[2]);
+            }
+
+            if (normal_line_core_joint != 0)
+            {
+                switch (SL[1].djoint)
+                {
+                    case polyline_opt.PLJ_miter:
+                        tris.Push3(P2,  P5,  P0, C[1], C[1], C[1]);
+                    goto case polyline_opt.PLJ_bevel;
+
+                    case polyline_opt.PLJ_bevel:
+                        if (normal_line_core_joint==1)
+                        tris.Push3(P2,  P5,  P1, C[1], C[1], C[1]);
+                    break;
+
+                    case polyline_opt.PLJ_round: {
+                        VertexArrayHolder strip = new VertexArrayHolder();
+                        strip.SetGlDrawMode(VertexArrayHolder.GL_TRIANGLE_STRIP);
+
+                    /*if (normal_line_core_joint==1)
+                        vectors_to_arc( strip, P_1, C[1], C[1],
+                        SL[1].T1, SL[1].T,
+                        get_PLJ_round_dangle(SL[1].t,SL[1].r),
+                        SL[1].t, 0.0f, false, &P1);
+                    else if (normal_line_core_joint==2)
+                        vectors_to_arc( strip, P_1, C[1], C[1],
+                        SL[1].T1, SL[1].T,
+                        get_PLJ_round_dangle(SL[1].t,SL[1].r),
+                        SL[1].t, 0.0f, false, &P5);*/
+
+                        tris.Push(strip);
+                    } break;
+                }
+            }
+        } //AnchorLate
+
+        private static void push_quad(VertexArrayHolder core,
+                Point P0, Point P1, Point P2, Point P3,
+                Color c0, Color c1, Color c2, Color c3)
+        {
+            core.Push3(P0, P1, P2, c0, c1, c2);
+            core.Push3(P2, P1, P3, c2, c1, c3);
+        }
 
         private static void same_side_of_line(ref Point V, Point R, Point a, Point b)
         {

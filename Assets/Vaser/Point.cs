@@ -66,6 +66,52 @@ namespace Vaser
             }
             return L;
         }
+        public int octant()
+        {
+            if (x == 0 && y == 0) {
+                return 0;
+            }
+            if (x == 0) {
+                return y > 0 ? 3 : 7;
+            }
+            if (y == 0) {
+                return x > 0 ? 1 : 5;
+            }
+            if (x > 0 && y > 0) {
+                if (y/x < 0.5f) {
+                    return 1;
+                } else if (y/x > 2f) {
+                    return 3;
+                } else {
+                    return 2;
+                }
+            } else if (x < 0 && y > 0) {
+                if (y/x < -2f) {
+                    return 3;
+                } else if (y/x > -0.5f) {
+                    return 5;
+                } else {
+                    return 4;
+                }
+            } else if (x < 0 && y < 0) {
+                if (y/x < 0.5f) {
+                    return 5;
+                } else if (y/x > 2f) {
+                    return 7;
+                } else {
+                    return 6;
+                }
+            } else if (x > 0 && y < 0) {
+                if (y/x < -2f) {
+                    return 7;
+                } else if (y/x > -0.5f) {
+                    return 1;
+                } else {
+                    return 8;
+                }
+            }
+            return 0;
+        }
         public void perpen() //perpendicular: anti-clockwise 90 degrees
         {
             float y_value=y;
