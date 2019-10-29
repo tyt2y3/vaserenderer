@@ -141,7 +141,7 @@ namespace Vaser
                 new Vector4(-1, -1, 0, 0),
                 new Vector4(0, -1, 0, 0),
                 new Vector4(1, -1, 0, 0),
-                new Vector4(2f, 0, 0, 0),
+                new Vector4(1, 0, -1, 0),
             };
 
             if (glmode == GL_TRIANGLES)
@@ -226,7 +226,7 @@ namespace Vaser
                                 uvs.Add(UVS[9]);
                             } else {
                                 Debug.Log("zero fade");
-                                uvs.Add(UVS[1]);
+                                uvs.Add(UVS[0]);
                             }
                         }
                     }
