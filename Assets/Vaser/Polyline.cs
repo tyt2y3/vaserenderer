@@ -90,33 +90,13 @@ namespace Vaser
             bool seg_mode=false)
         {
             float t = 1.0f, r = 0.0f;
-            Point DP = P2 - P1;
 
             //calculate t,r
             determine_t_r(w, ref t, ref r);
 
-            if (opt.feather && !opt.no_feather_at_core && opt.feathering != 1.0f)
-            {
-                r *= opt.feathering;
-            }
-            else if (seg_mode)
-            {
-                //TODO: handle correctly for hori/vert segments in a polyline
-                if (Point.negligible(DP.x) && P1.x==System.Math.Floor(P1.x)) {
-                    if (w>0.0f && w<=1.0f) {
-                        t=0.5f; r=0.0f;
-                        P2.x = P1.x = (float)System.Math.Floor(P1.x+0.5f);
-                    }
-                } else if (Point.negligible(DP.y) && P1.y==System.Math.Floor(P1.y)) {
-                    if (w>0.0f && w<=1.0f) {
-                        t=0.5f; r=0.0f;
-                        P2.y = P1.y = (float)System.Math.Floor(P1.y+0.5f);
-                    }
-                }
-            }
-
             //output
             tt = t;
+            Point DP = P2 - P1;
             dist = DP.normalize();
             C = DP;
             DP.perpen();
@@ -223,7 +203,7 @@ namespace Vaser
                 int i=1;
 
                 float r=0f,t=0f;
-                Point P_cur = P[i]; //current point //to avoid calling constructor repeatedly
+                Point P_cur = P[i]; //current point
                 Point P_nxt = P[i+1]; //next point
                 Point P_las = P[i-1]; //last point
                 if (opt.cap==polyline_opt.PLC_butt || opt.cap==polyline_opt.PLC_square)
@@ -456,22 +436,169 @@ namespace Vaser
                         VertexArrayHolder strip = new VertexArrayHolder();
                         strip.SetGlDrawMode(VertexArrayHolder.GL_TRIANGLE_STRIP);
 
-                    /*if (normal_line_core_joint==1)
-                        vectors_to_arc( strip, P_1, C[1], C[1],
-                        SL[1].T1, SL[1].T,
-                        get_PLJ_round_dangle(SL[1].t,SL[1].r),
-                        SL[1].t, 0.0f, false, &P1);
-                    else if (normal_line_core_joint==2)
-                        vectors_to_arc( strip, P_1, C[1], C[1],
-                        SL[1].T1, SL[1].T,
-                        get_PLJ_round_dangle(SL[1].t,SL[1].r),
-                        SL[1].t, 0.0f, false, &P5);*/
-
+                    if (normal_line_core_joint==1) {
+                        vectors_to_arc(strip, P_1, C[1], C[1], SL[1].T1, SL[1].T,
+                            get_PLJ_round_dangle(SL[1].t,SL[1].r),
+                            SL[1].t, 0.0f, false, P1);
+                    } else if (normal_line_core_joint==2) {
+                        vectors_to_arc(strip, P_1, C[1], C[1], SL[1].T1, SL[1].T,
+                            get_PLJ_round_dangle(SL[1].t,SL[1].r),
+                            SL[1].t, 0.0f, false, P5);
+                    }
                         tris.Push(strip);
                     } break;
                 }
             }
         } //AnchorLate
+
+        private static void inner_arc(
+                VertexArrayHolder hold,
+                Point P, Color C, Color C2,
+                float dangle, float angle1, float angle2,
+                float r, float r2, bool ignor_ends,
+                Point apparent_P, bool use_apparent_P)
+        {
+            // (apparent center) center of fan
+            //draw the inner arc between angle1 and angle2 with dangle at each step.
+            // -the arc has thickness, r is the outer radius and r2 is the inner radius,
+            //    with color C and C2 respectively.
+            //    in case when inner radius r2=0.0f, it gives a pie.
+            // -when ignor_ends=false, the two edges of the arc lie exactly on angle1
+            //    and angle2. when ignor_ends=true, the two edges of the arc do not touch
+            //    angle1 or angle2.
+            // -P is the mathematical center of the arc.
+            // -when use_apparent_P is true, r2 is ignored,
+            //    apparent_P is then the apparent origin of the pie.
+            // -the result is pushed to hold, in form of a triangle strip
+            // -an inner arc is an arc which is always shorter than or equal to a half circumference
+
+            void inner_arc_push(double x, double y)
+            {
+                //hold.Dot(new Point(P.x+(float)x*r, P.y-(float)y*r), 0.05f);
+                hold.Push(new Point(P.x+(float)x*r, P.y-(float)y*r), C, 1);
+                if (use_apparent_P) {
+                    hold.Push(apparent_P, C2, 1);
+                } else {
+                    hold.Push(new Point(P.x+(float)x*r2, P.y-(float)y*r2), C2, 1);
+                }
+            }
+
+            const float m_pi = (float) System.Math.PI;
+
+            if (angle2 > angle1)
+            {
+                if (angle2-angle1>m_pi)
+                {
+                    angle2=angle2-2*m_pi;
+                }
+            }
+            else
+            {
+                if (angle1-angle2>m_pi)
+                {
+                    angle1=angle1-2*m_pi;
+                }
+            }
+
+            bool incremental = true;
+            if (angle1 > angle2)
+            {
+                incremental = false;
+            }
+
+            if (incremental)
+            {
+                if (ignor_ends)
+                {
+                    for (float a=angle2-dangle; a>angle1; a-=dangle)
+                    {
+                        inner_arc_push(System.Math.Cos(a), System.Math.Sin(a));
+                    }
+                }
+                else
+                {
+                    for (float a=angle2; ; a-=dangle)
+                    {
+                        if (a<angle1) {
+                            a=angle1;
+                        }
+
+                        inner_arc_push(System.Math.Cos(a), System.Math.Sin(a));
+
+                        if (a<=angle1) {
+                            break;
+                        }
+                    }
+                }
+            }
+            else //decremental
+            {
+                if (ignor_ends)
+                {
+                    for (float a=angle2+dangle; a<angle1; a+=dangle)
+                    {
+                        inner_arc_push(System.Math.Cos(a), System.Math.Sin(a));
+                    }
+                }
+                else
+                {
+                    for (float a=angle2; ;a+=dangle)
+                    {
+                        if (a>angle1) {
+                            a=angle1;
+                        }
+
+                        inner_arc_push(System.Math.Cos(a), System.Math.Sin(a));
+
+                        if (a>=angle1) {
+                            break;
+                        }
+                    }
+                }
+            }
+        } // inner_arc
+
+        private static void vectors_to_arc(
+                VertexArrayHolder hold,
+                Point P, Color C, Color C2,
+                Point A, Point B, float dangle, float r, float r2, bool ignor_ends,
+                Point apparent_P)
+        {
+            // triangulate an inner arc between vectors A and B,
+            // A and B are position vectors relative to P
+            const float m_pi = (float) System.Math.PI;
+            const float vaser_min_alw = 0.00000000001f;
+            A *= 1/r;
+            B *= 1/r;
+            if (A.x > 1.0f-vaser_min_alw) A.x = 1.0f-vaser_min_alw;
+            if (A.x <-1.0f+vaser_min_alw) A.x =-1.0f+vaser_min_alw;
+            if (B.x > 1.0f-vaser_min_alw) B.x = 1.0f-vaser_min_alw;
+            if (B.x <-1.0f+vaser_min_alw) B.x =-1.0f+vaser_min_alw;
+
+            float angle1 = (float) System.Math.Acos(A.x);
+            float angle2 = (float) System.Math.Acos(B.x);
+            if (A.y>0) {
+                angle1 = 2*m_pi-angle1;
+            }
+            if (B.y>0) {
+                angle2 = 2*m_pi-angle2;
+            }
+
+            inner_arc(hold, P, C, C2, dangle, angle1, angle2, r, r2, ignor_ends, apparent_P, true);
+        }
+
+        private static float get_PLJ_round_dangle(float t, float r)
+        {
+            float dangle;
+            float sum = t+r;
+            /*if ( sum <= 1.44f+1.08f) //w<=4.0, feathering=1.0
+                dangle = 0.6f/(t+r);
+            else if ( sum <= 3.25f+1.08f) //w<=6.5, feathering=1.0
+                dangle = 2.8f/(t+r);
+            else*/
+                dangle = 0.25f;
+            return dangle;
+        }
 
         private static void push_quad(VertexArrayHolder core,
                 Point P0, Point P1, Point P2, Point P3,

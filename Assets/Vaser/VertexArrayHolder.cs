@@ -49,6 +49,19 @@ namespace Vaser
             Push(P3, C3, fade3);
         }
 
+        public void Dot(Point P, float size)
+        {
+            size /= 2;
+            if (glmode == GL_TRIANGLES) {
+            } else if (glmode == GL_TRIANGLE_STRIP) {
+                Push(new Point(P.x-size, P.y), Color.red);
+                Push(new Point(P.x, P.y+size), Color.red);
+                Push(new Point(P.x, P.y-size), Color.red);
+                Push(new Point(P.x+size, P.y), Color.red);
+                Jump();
+            }
+        }
+
         public void Push(VertexArrayHolder hold)
         {
             if (glmode == hold.glmode)
