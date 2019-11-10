@@ -81,6 +81,22 @@ namespace Vaser
             // i.e. when a polyline is of uniform thickness, the same w is passed in repeatedly
             float f = w - (float)System.Math.Floor(w);
             t = w; R = 0f;
+            /* // resolution dependent
+            if (w>=0.0 && w<1.0) {
+                t=0.05; R=0.768;//R=0.48+0.32*f;
+            } else if (w>=1.0 && w<2.0) {
+                t=0.05+f*0.33; R=0.768+0.312*f;
+            } else if (w>=2.0 && w<3.0) {
+                t=0.38+f*0.58; R=1.08;
+            } else if (w>=3.0 && w<4.0) {
+                t=0.96+f*0.48; R=1.08;
+            } else if (w>=4.0 && w<5.0) {
+                t=1.44+f*0.46; R=1.08;
+            } else if (w>=5.0 && w<6.0) {
+                t=1.9+f*0.6; R=1.08;
+            } else if (w>=6.0){
+                t=2.5+(w-6.0)*0.50; R=1.08;
+            } */
         }
 
         private static void make_T_R_C(
@@ -123,7 +139,8 @@ namespace Vaser
 
             bool varying_weight = !(weight[0]==weight[1] & weight[1]==weight[2]);
 
-            /*float combined_weight=weight[1]+(opt.feather?opt.feathering:0.0);
+            /* // resolution dependent
+            float combined_weight=weight[1]+(opt.feather?opt.feathering:0.0);
             if (combined_weight < cri_segment_approx)
             {
                 segment(SA, &opt, cap_first,false, opt.joint==PLJ_round?PLC_round:PLC_butt);
@@ -138,7 +155,8 @@ namespace Vaser
 
             Point T1=new Point(), T2=new Point(), T21=new Point(), T31=new Point(), RR=new Point();
 
-            /*for (int i=0; i<3; i++)
+            /* // resolution dependent
+            for (int i=0; i<3; i++)
             {   //lower the transparency for weight < 1.0
                 if (weight[i]>=0.0 && weight[i]<1.0)
                 {
@@ -589,14 +607,14 @@ namespace Vaser
 
         private static float get_PLJ_round_dangle(float t, float r)
         {
-            float dangle;
+            float dangle = 0.25f;
             float sum = t+r;
-            /*if ( sum <= 1.44f+1.08f) //w<=4.0, feathering=1.0
+            /* // resolution dependent
+            if (sum <= 1.44f+1.08f) //w<=4.0, feathering=1.0
                 dangle = 0.6f/(t+r);
-            else if ( sum <= 3.25f+1.08f) //w<=6.5, feathering=1.0
+            else if (sum <= 3.25f+1.08f) //w<=6.5, feathering=1.0
                 dangle = 2.8f/(t+r);
-            else*/
-                dangle = 0.25f;
+            */
             return dangle;
         }
 
