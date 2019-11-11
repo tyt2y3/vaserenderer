@@ -114,9 +114,180 @@ namespace Vaser
             tt = t;
             Point DP = P2 - P1;
             dist = DP.normalize();
-            C = DP;
+            C = DP*0.1f; // resolution dependent
             DP.perpen();
             T = DP*t;
+        }
+
+        public static void Segment(st_anchor SA, polyline_opt opt, bool cap_first, bool cap_last, int last_cap_type=-1)
+        {
+            float[] weight = SA.W;
+
+            Point[] P = new Point[2]; P[0]=SA.P[0]; P[1]=SA.P[1];
+            Color[] C = new Color[3]; C[0]=SA.C[0]; C[1]=SA.C[1];
+
+            Point T2=new Point();
+            Point R2=new Point();
+            Point bR=new Point();
+            float t=0, r=0;
+
+            bool varying_weight = !(weight[0]==weight[1]);
+
+            Point cap_start=new Point(), cap_end=new Point();
+            st_polyline[] SL = new st_polyline[2];
+
+            /* // resolution dependent
+            for (int i=0; i<2; i++)
+            {
+                if ( weight[i]>=0.0 && weight[i]<1.0)
+                {
+                    double f=weight[i]-System.Math.floor(weight[i]);
+                    C[i].a *=f;
+                }
+            } */
+
+            {
+                int i = 0;
+                float dd = 0f;
+                make_T_R_C(ref P[i], ref P[i+1], ref T2, ref R2, ref bR, weight[i], opt, ref r, ref t, ref dd, true);
+
+                if (cap_first)
+                {
+                    if (opt.cap==polyline_opt.PLC_square) {
+                        P[0] = new Point(P[0]) - bR * (t+r);
+                    }
+                    cap_start = bR;
+                    cap_start.opposite();
+                    if (opt.feather && !opt.no_feather_at_cap) {
+                        cap_start *= opt.feathering;
+                    }
+                }
+
+                SL[i].djoint=opt.cap;
+                SL[i].t=t;
+                SL[i].r=r;
+                SL[i].T=T2;
+                SL[i].R=R2;
+                SL[i].bR=bR*0.01f;
+                SL[i].degenT = false;
+                SL[i].degenR = false;
+            }
+
+            {
+                int i = 1;
+                float dd = 0f;
+                if (varying_weight) {
+                    make_T_R_C(ref P[i-1], ref P[i], ref T2, ref R2, ref bR, weight[i], opt, ref r, ref t, ref dd, true);
+                }
+
+                last_cap_type = last_cap_type==-1 ? opt.cap:last_cap_type;
+
+                if (cap_last)
+                {
+                    if (last_cap_type==polyline_opt.PLC_square) {
+                        P[1] = new Point(P[1]) + bR * (t+r);
+                    }
+                    cap_end = bR;
+                    if (opt.feather && !opt.no_feather_at_cap) {
+                        cap_end *= opt.feathering;
+                    }
+                }
+
+                SL[i].djoint = (char) last_cap_type;
+                SL[i].t=t;
+                SL[i].r=r;
+                SL[i].T=T2;
+                SL[i].R=R2;
+                SL[i].bR=bR*0.01f;
+                SL[i].degenT = false;
+                SL[i].degenR = false;
+            }
+
+            SegmentLate(P, C, SL, SA.vah, cap_start, cap_end);
+        }
+
+        public static void SegmentLate(
+                Point[] P, Color[] C, st_polyline[] SL,
+                VertexArrayHolder tris,
+                Point cap1, Point cap2)
+        {
+            tris.SetGlDrawMode(VertexArrayHolder.GL_TRIANGLES);
+
+            Point P_0, P_1;
+            P_0 = new Point(P[0]);
+            P_1 = new Point(P[1]);
+            if (SL[0].djoint==polyline_opt.PLC_butt || SL[0].djoint==polyline_opt.PLC_square) {
+                P_0 -= cap1;
+            }
+            if (SL[1].djoint==polyline_opt.PLC_butt || SL[1].djoint==polyline_opt.PLC_square) {
+                P_1 -= cap2;
+            }
+
+            Point P1, P2, P3, P4;  //core
+            Point P1c,P2c,P3c,P4c; //cap
+
+            P1 = P_0 + SL[0].T;
+                P1c = P1 + cap1;
+            P2 = P_0 - SL[0].T;
+                P2c = P2 + cap1;
+            P3 = P_1 + SL[1].T;
+                P3c = P3 + cap2;
+            P4 = P_1 - SL[1].T;
+                P4c = P4 + cap2;
+
+            //core
+            tris.Push3(P1, P3, P2, C[0], C[1], C[0], 1, 0, 0);
+            tris.Push3(P2, P3, P4, C[0], C[1], C[1], 0, 0, 1);
+
+            //caps
+            for (int j=0; j<2; j++)
+            {
+                VertexArrayHolder cap = new VertexArrayHolder();
+                cap.SetGlDrawMode(VertexArrayHolder.GL_TRIANGLE_STRIP);
+                Point cur_cap = j==0 ? cap1 : cap2;
+                if (cur_cap.is_zero()) {
+                    continue;
+                }
+
+                if ( SL[j].djoint == polyline_opt.PLC_round)
+                {   //round cap
+                    Point O = P[j];
+                    Point app_P = O + SL[j].T;
+                    Point bR = SL[j].bR;
+                    bR.follow_signs(j==0 ? cap1 : cap2);
+                    float dangle = get_PLJ_round_dangle(SL[j].t,SL[j].r);
+
+                    vectors_to_arc(
+                        cap, O, C[j], C[j],
+                        SL[j].T+bR, -SL[j].T+bR,
+                        dangle,
+                        SL[j].t, 0.0f, false, app_P);
+                    cap.Push(O-SL[j].T, C[j]);
+                    cap.Push(app_P, C[j]);
+                    tris.Push(cap);
+                }
+                else
+                {   //rectangular cap
+                    Point Pj, Pjc, Pk, Pkc;
+                    if (j==0)
+                    {
+                        Pj = P1c;
+                        Pjc= P1;
+                        Pk = P2c;
+                        Pkc= P2;
+                    }
+                    else
+                    {
+                        Pj = P3c;
+                        Pjc= P3;
+                        Pk = P4c;
+                        Pkc= P4;
+                    }
+
+                    tris.Push3(Pkc, Pk, Pj, C[j], C[j], C[j], 1, 1, 0);
+                    tris.Push3(Pkc, Pj, Pjc, C[j], C[j], C[j], 0, 1, 0);
+                }
+            }
         }
 
         public static void Anchor(st_anchor SA, polyline_opt opt, bool cap_first, bool cap_last)
@@ -616,14 +787,6 @@ namespace Vaser
                 dangle = 2.8f/(t+r);
             */
             return dangle;
-        }
-
-        private static void push_quad(VertexArrayHolder core,
-                Point P0, Point P1, Point P2, Point P3,
-                Color c0, Color c1, Color c2, Color c3)
-        {
-            core.Push3(P0, P1, P2, c0, c1, c2);
-            core.Push3(P2, P1, P3, c2, c1, c3);
         }
 
         private static void same_side_of_line(ref Point V, Point R, Point a, Point b)

@@ -24,12 +24,12 @@ public class Demo : MonoBehaviour {
         */
 
         Polyline.st_anchor SA = new Polyline.st_anchor();
-        int mode = 1;
+        int mode = 4;
         if (mode == 1) {
             // normal anchor
-            SA.P[0] = new Point(-1f, -0.75f);
+            SA.P[0] = new Point(-1f, -0.5f);
             SA.P[1] = new Point(0f, 0.75f);
-            SA.P[2] = new Point(1f, -0.75f);
+            SA.P[2] = new Point(1f, 0.25f);
         } else if (mode == 2) {
             // degen prefull
             SA.P[0] = new Point(-1f, -0.75f);
@@ -40,6 +40,10 @@ public class Demo : MonoBehaviour {
             SA.P[0] = new Point(-0.5f, -0.5f);
             SA.P[1] = new Point(0f, 0.75f);
             SA.P[2] = new Point(-0.25f, -1f);
+        } else if (mode == 4) {
+            // segment
+            SA.P[0] = new Point(-1f, -0.5f);
+            SA.P[1] = new Point(1f, 0.25f);
         }
 
         SA.C[0] = Color.red;
@@ -50,8 +54,14 @@ public class Demo : MonoBehaviour {
         SA.W[2] = 0.25f;
 
         Polyline.polyline_opt opt = new Polyline.polyline_opt();
-        opt.joint = Polyline.polyline_opt.PLJ_round;
-        Polyline.Anchor(SA, opt, false, false);
+        if (mode <= 3) {
+            opt.joint = Polyline.polyline_opt.PLJ_round;
+            Polyline.Anchor(SA, opt, false, false);
+        } else if (mode == 4) {
+            opt.cap = Polyline.polyline_opt.PLC_butt;
+            Polyline.Segment(SA, opt, true, true);
+        }
+
         VertexArrayHolder vah = SA.vah;
         //*/
 
