@@ -17,14 +17,14 @@ namespace Vaser
         private bool jumping = false;
         private List<Vector3> vert = new List<Vector3>();
         private List<Color> color = new List<Color>();
-        private List<int> fade = new List<int>();
+        private List<float> fade = new List<float>();
 
         public void SetGlDrawMode(int gl_draw_mode)
         {
             glmode = gl_draw_mode;
         }
 
-        public int Push(Point P, Color cc, int fade0=0)
+        public int Push(Point P, Color cc, float fade0=0)
         {
             int cur = vert.Count;
             vert.Add(new Vector3(P.x, P.y, 0));
@@ -39,10 +39,16 @@ namespace Vaser
             return cur;
         }
 
+        public int PushF(Point P, Color C)
+        {
+            C.a = 0;
+            return Push(P, C);
+        }
+
         public void Push3(
                 Point P1, Point P2, Point P3,
                 Color C1, Color C2, Color C3,
-                int fade1=0, int fade2=0, int fade3=0)
+                float fade1=0, float fade2=0, float fade3=0)
         {
             Push(P1, C1, fade1);
             Push(P2, C2, fade2);
@@ -155,7 +161,6 @@ namespace Vaser
                 new Vector4(0, -1, 1, 0),
                 new Vector4(1, -1, 1, 0),
                 new Vector4(1, 0, 2, 0),
-                new Vector4(1, 0, 0.25f, 0),
             };
 
             if (glmode == GL_TRIANGLES)
@@ -167,16 +172,16 @@ namespace Vaser
                     if (fade[i-1] > 0) count++;
                     if (fade[i-0] > 0) count++;
                     if (count == 0) {
-                        uvs.Add(UVS[0]);
-                        uvs.Add(UVS[0]);
-                        uvs.Add(UVS[0]);
+                        addUV(0, 1);
+                        addUV(0, 1);
+                        addUV(0, 1);
                     } else if (count == 3) {
-                        uvs.Add(UVS[1]);
-                        uvs.Add(UVS[5]);
-                        uvs.Add(UVS[3]);
+                        addUV(1, fade[i-2]);
+                        addUV(5, fade[i-1]);
+                        addUV(3, fade[i-0]);
                     } else if (count == 2) {
-                        int fadeU = 0;
-                        int fadeV = 0;
+                        float fadeU = 0;
+                        float fadeV = 0;
                         for (int j=0; j<3; j++)
                         {
                             if (j == 0) {
@@ -191,69 +196,45 @@ namespace Vaser
                             }
                             if (fadeU > 0 && fadeV > 0) {
                                 Debug.Log("fade both");
-                                uvs.Add(UVS[8]);
+                                addUV(8, fadeU);
                             } else if (fadeU > 0) {
                                 Debug.Log("fadeU");
-                                uvs.Add(UVS[2]);
+                                addUV(2, fadeU);
                             } else if (fadeV > 0) {
                                 Debug.Log("fadeV");
-                                uvs.Add(UVS[6]);
+                                addUV(6, fadeV);
                             }
                         }
                     } else if (count == 1 &&
                         fade[i-2] >= 0 && fade[i-1] >= 0 && fade[i-0] >= 0) {
-                        int fadeU = 0;
-                        int fadeV = 0;
-                        Point A = Get(i-2);
-                        Point B = Get(i-1);
-                        Point C = Get(i-0);
-                        Point U = B - A;
-                        Point V = C - B;
+                        float fadeU = 0;
+                        float fadeV = 0;
                         for (int j=0; j<3; j++)
                         {
-                            float ratio = 0;
                             if (j == 0) {
-                                U = B - A;
-                                V = C - A;
-                                if (V.length() > 0) {
-                                    ratio = U.length() / V.length();
-                                }
                                 fadeU = fade[i-2];
                                 fadeV = fade[i-0];
                             } else if (j == 1) {
-                                V = -U;
-                                U = C - B;
-                                if (V.length() > 0) {
-                                    ratio = U.length() / V.length();
-                                }
                                 fadeU = fade[i-1];
                                 fadeV = fade[i-2];
                             } else if (j == 2) {
-                                V = -U;
-                                U = A - C;
-                                if (V.length() > 0) {
-                                    ratio = U.length() / V.length();
-                                }
                                 fadeV = fade[i-1];
                                 fadeU = fade[i-0];
                             }
                             if (fadeU > 0 || fadeV > 0) {
                                 Debug.Log("fade side");
-                                if ((fadeU > 0 && ratio > 4.0) ||
-                                    (fadeV > 0 && ratio < 0.25)) {
-                                    // this triangle is so short that we want to fade more
-                                    uvs.Add(UVS[10]);
-                                } else {
-                                    uvs.Add(UVS[1]);
-                                }
+                                float fader = fadeU > 0 ? fadeU : fadeV;
+                                addUV(1, fader);
                             } else {
                                 Debug.Log("corner fade");
-                                uvs.Add(UVS[5]);
+                                float fader = fade[i-2] > 0 ? fade[i-2] : fade[i-1] > 0 ? fade[i-1] : fade[i-0];
+                                addUV(5, fader);
                             }
                         }
                     } else if (count == 1) {
-                        int fadeU = 0;
-                        int fadeV = 0;
+                        // may be fade is < 0
+                        float fadeU = 0;
+                        float fadeV = 0;
                         for (int j=0; j<3; j++)
                         {
                             if (j == 0) {
@@ -268,16 +249,27 @@ namespace Vaser
                             }
                             if (fadeU > 0 || fadeV > 0) {
                                 Debug.Log("fan fade");
-                                uvs.Add(UVS[9]);
+                                float fader = fadeU > 0 ? fadeU : fadeV;
+                                addUV(9, fader);
                             } else {
                                 Debug.Log("zero fade");
-                                uvs.Add(UVS[0]);
+                                float fader = fade[i-2] > 0 ? fade[i-2] : fade[i-1] > 0 ? fade[i-1] : fade[i-0];
+                                addUV(0, fader);
                             }
                         }
                     }
                 }
             }
             return uvs;
+
+            void addUV(int i, float r)
+            {
+                if (UVS[i].z != r) {
+                    UVS[i] = new Vector4(UVS[i].x, UVS[i].y, UVS[i].z, UVS[i].w);
+                    UVS[i].z = r;
+                }
+                uvs.Add(UVS[i]);
+            }
         }
 
         public List<Color> GetColors()

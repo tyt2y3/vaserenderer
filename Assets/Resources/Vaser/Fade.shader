@@ -1,10 +1,5 @@
 ﻿Shader "Fade" {
 
-    Properties
-    {
-        _Feather ("Feather", Float) = 1.0
-    }
-
     SubShader {
         Tags { "Queue"="Transparent" "RenderType"="Transparent" "IgnoreProjector"="True" }
 
@@ -39,18 +34,11 @@
                 return o;
             }
 
-            float _Feather;
-
             fixed4 frag (v2f i) : SV_Target {
                 fixed4 col = i.color;
                 float fact = max(abs(i.uv.x), abs(i.uv.y));
-                fact = fact*i.uv.z - (i.uv.z-1);
-                if (_Feather == 0) {
-                    return col;
-                }
-                fact = 1-fact;
-                fact = min(fact / _Feather, 1);
-                col.a = fact;
+                fact = min((1 - fact) * i.uv.z, 1);
+                col.a *= fact;
                 return col;
             }
             ENDCG

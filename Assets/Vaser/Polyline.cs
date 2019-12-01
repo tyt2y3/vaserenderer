@@ -9,6 +9,8 @@ namespace Vaser
 
         public class polyline_opt
         {
+            public float world_to_screen_ratio = 1.0f;
+
             //const tessellator_opt* tess;
             public char joint; //use PLJ_xx
             public char cap;   //use PLC_xx
@@ -75,28 +77,30 @@ namespace Vaser
             public VertexArrayHolder vah = new VertexArrayHolder();
         }
 
-        private static void determine_t_r(float w, ref float t, ref float R)
+        private static void determine_t_r(float w, ref float t, ref float R, float scale)
         {
             //efficiency: can cache one set of w,t,R values
             // i.e. when a polyline is of uniform thickness, the same w is passed in repeatedly
-            float f = w - (float)System.Math.Floor(w);
-            t = w; R = 0f;
-            /* // resolution dependent
+            w *= scale;
+            float f = w - (float) System.Math.Floor(w);
+            // resolution dependent
             if (w>=0.0 && w<1.0) {
-                t=0.05; R=0.768;//R=0.48+0.32*f;
+                t=0.05f; R=0.768f;
             } else if (w>=1.0 && w<2.0) {
-                t=0.05+f*0.33; R=0.768+0.312*f;
+                t=0.05f+f*0.33f; R=0.768f+0.312f*f;
             } else if (w>=2.0 && w<3.0) {
-                t=0.38+f*0.58; R=1.08;
+                t=0.38f+f*0.58f; R=1.08f;
             } else if (w>=3.0 && w<4.0) {
-                t=0.96+f*0.48; R=1.08;
+                t=0.96f+f*0.48f; R=1.08f;
             } else if (w>=4.0 && w<5.0) {
-                t=1.44+f*0.46; R=1.08;
+                t=1.44f+f*0.46f; R=1.08f;
             } else if (w>=5.0 && w<6.0) {
-                t=1.9+f*0.6; R=1.08;
+                t=1.9f+f*0.6f; R=1.08f;
             } else if (w>=6.0){
-                t=2.5+(w-6.0)*0.50; R=1.08;
-            } */
+                t=2.5f+(w-6.0f)*0.50f; R=1.08f;
+            }
+            t /= scale;
+            R /= scale;
         }
 
         private static void make_T_R_C(
@@ -108,15 +112,20 @@ namespace Vaser
             float t = 1.0f, r = 0.0f;
 
             //calculate t,r
-            determine_t_r(w, ref t, ref r);
+            determine_t_r(w, ref t, ref r, opt.world_to_screen_ratio);
+            if (opt.feather && !opt.no_feather_at_core && opt.feathering != 1.0) {
+                r *= opt.feathering;
+            }
 
             //output
             tt = t;
+            rr = r;
             Point DP = P2 - P1;
             dist = DP.normalize();
-            C = DP*0.1f; // resolution dependent
+            C = DP*(1/opt.world_to_screen_ratio);
             DP.perpen();
             T = DP*t;
+            R = DP*r;
         }
 
         public static void Segment(st_anchor SA, polyline_opt opt, bool cap_first, bool cap_last, int last_cap_type=-1)
@@ -225,19 +234,28 @@ namespace Vaser
 
             Point P1, P2, P3, P4;  //core
             Point P1c,P2c,P3c,P4c; //cap
+            Point P1r,P2r,P3r,P4r; //fade
+            float rr = (SL[0].t + SL[0].r) / SL[0].r;
+            Debug.Log(System.String.Format("{0},{1}", SL[0].r, (SL[0].t + SL[0].r)));
 
-            P1 = P_0 + SL[0].T;
+            P1 = P_0 + SL[0].T + SL[0].R;
+                P1r = P1 - SL[0].R;
                 P1c = P1 + cap1;
-            P2 = P_0 - SL[0].T;
+            P2 = P_0 - SL[0].T - SL[0].R;
+                P2r = P2 + SL[0].R;
                 P2c = P2 + cap1;
-            P3 = P_1 + SL[1].T;
+            P3 = P_1 + SL[1].T + SL[1].R;
+                P3r = P3 - SL[1].R;
                 P3c = P3 + cap2;
-            P4 = P_1 - SL[1].T;
+            P4 = P_1 - SL[1].T - SL[1].R;
+                P4r = P4 + SL[1].R;
                 P4c = P4 + cap2;
 
             //core
-            tris.Push3(P1, P3, P2, C[0], C[1], C[0], 1, 0, 0);
-            tris.Push3(P2, P3, P4, C[0], C[1], C[1], 0, 0, 1);
+            push_quad(
+                tris, ref P1, ref P2, ref P3, ref P4,
+                ref C[0], ref C[0], ref C[1], ref C[1],
+                rr, 0, 0, rr);
 
             //caps
             for (int j=0; j<2; j++)
@@ -268,24 +286,40 @@ namespace Vaser
                 }
                 else
                 {   //rectangular cap
-                    Point Pj, Pjc, Pk, Pkc;
+                    Point Pj, Pjr, Pjc, Pk, Pkr, Pkc;
                     if (j==0)
                     {
-                        Pj = P1c;
-                        Pjc= P1;
-                        Pk = P2c;
-                        Pkc= P2;
+                        Pj = P1;
+                        Pjr= P1r;
+                        Pjc= P1c;
+                        
+                        Pk = P2;
+                        Pkr= P2r;
+                        Pkc= P2c;
                     }
                     else
                     {
-                        Pj = P3c;
-                        Pjc= P3;
-                        Pk = P4c;
-                        Pkc= P4;
+                        Pj = P4;
+                        Pjr= P4r;
+                        Pjc= P4c;
+                        
+                        Pk = P3;
+                        Pkr= P3r;
+                        Pkc= P3c;
                     }
 
-                    tris.Push3(Pkc, Pk, Pj, C[j], C[j], C[j], 1, 1, 0);
-                    tris.Push3(Pkc, Pj, Pjc, C[j], C[j], C[j], 0, 1, 0);
+                    tris.PushF(Pk,  C[j]);
+                    tris.PushF(Pkc, C[j]);
+                    tris.Push (Pkr, C[j]);
+                    tris.Push (Pkr, C[j]);
+                    tris.PushF(Pkc, C[j]);
+                    tris.Push (Pjr, C[j]);
+                    tris.Push (Pjr, C[j]);
+                    tris.PushF(Pkc, C[j]);
+                    tris.PushF(Pjc, C[j]);
+                    tris.Push (Pjr, C[j]);
+                    tris.PushF(Pjc, C[j]);
+                    tris.PushF(Pj,  C[j]);
                 }
             }
         }
@@ -797,6 +831,16 @@ namespace Vaser
             {
                 V.opposite();
             }
+        }
+
+        private static void push_quad(VertexArrayHolder tris,
+            ref Point P1, ref Point P2, ref Point P3, ref Point P4,
+            ref Color C1, ref Color C2, ref Color C3, ref Color C4,
+            float r1, float r2, float r3, float r4)
+        {
+            //interpret P0 to P3 as triangle strip
+            tris.Push3(P1, P3, P2, C1, C3, C2, r1, r3, r2);
+            tris.Push3(P2, P3, P4, C2, C3, C4, r2, r3, r4);
         }
     }
 }

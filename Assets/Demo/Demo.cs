@@ -42,8 +42,8 @@ public class Demo : MonoBehaviour {
             SA.P[2] = new Point(-0.25f, -1f);
         } else if (mode == 4) {
             // segment
-            SA.P[0] = new Point(-1f, -0.5f);
-            SA.P[1] = new Point(1f, 0.25f);
+            SA.P[0] = new Point(1f, -0.5f);
+            SA.P[1] = new Point(-1f, 0.25f);
         }
 
         SA.C[0] = Color.red;
@@ -54,7 +54,14 @@ public class Demo : MonoBehaviour {
         SA.W[2] = 0.25f;
 
         Polyline.polyline_opt opt = new Polyline.polyline_opt();
-        //https://docs.unity3d.com/ScriptReference/Camera-projectionMatrix.html
+        opt.feather = true;
+        opt.feathering = 20.0f;
+        {
+            Camera cam = Camera.main;
+            Vector3 a = cam.WorldToScreenPoint(new Vector3(0,0,0));
+            Vector3 b = cam.WorldToScreenPoint(new Vector3(1,1,0));
+            opt.world_to_screen_ratio = Vector3.Distance(a,b) / new Vector3(1,1,0).magnitude;
+        }
         if (mode <= 3) {
             opt.joint = Polyline.polyline_opt.PLJ_round;
             Polyline.Anchor(SA, opt, false, false);
