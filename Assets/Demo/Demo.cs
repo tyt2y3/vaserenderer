@@ -54,6 +54,7 @@ public class Demo : MonoBehaviour {
         SA.W[2] = 0.25f;
 
         Polyline.polyline_opt opt = new Polyline.polyline_opt();
+        //https://docs.unity3d.com/ScriptReference/Camera-projectionMatrix.html
         if (mode <= 3) {
             opt.joint = Polyline.polyline_opt.PLJ_round;
             Polyline.Anchor(SA, opt, false, false);
