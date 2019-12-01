@@ -177,7 +177,7 @@ namespace Vaser
                 SL[i].r=r;
                 SL[i].T=T2;
                 SL[i].R=R2;
-                SL[i].bR=bR*0.01f;
+                SL[i].bR=bR;
                 SL[i].degenT = false;
                 SL[i].degenR = false;
             }
@@ -207,15 +207,16 @@ namespace Vaser
                 SL[i].r=r;
                 SL[i].T=T2;
                 SL[i].R=R2;
-                SL[i].bR=bR*0.01f;
+                SL[i].bR=bR;
                 SL[i].degenT = false;
                 SL[i].degenR = false;
             }
 
-            SegmentLate(P, C, SL, SA.vah, cap_start, cap_end);
+            SegmentLate(opt, P, C, SL, SA.vah, cap_start, cap_end);
         }
 
         public static void SegmentLate(
+                polyline_opt opt,
                 Point[] P, Color[] C, st_polyline[] SL,
                 VertexArrayHolder tris,
                 Point cap1, Point cap2)
@@ -236,7 +237,6 @@ namespace Vaser
             Point P1c,P2c,P3c,P4c; //cap
             Point P1r,P2r,P3r,P4r; //fade
             float rr = (SL[0].t + SL[0].r) / SL[0].r;
-            Debug.Log(System.String.Format("{0},{1}", SL[0].r, (SL[0].t + SL[0].r)));
 
             P1 = P_0 + SL[0].T + SL[0].R;
                 P1r = P1 - SL[0].R;
@@ -267,21 +267,18 @@ namespace Vaser
                     continue;
                 }
 
-                if ( SL[j].djoint == polyline_opt.PLC_round)
+                if (SL[j].djoint == polyline_opt.PLC_round)
                 {   //round cap
                     Point O = P[j];
-                    Point app_P = O + SL[j].T;
-                    Point bR = SL[j].bR;
-                    bR.follow_signs(j==0 ? cap1 : cap2);
-                    float dangle = get_PLJ_round_dangle(SL[j].t,SL[j].r);
+                    float dangle = get_PLJ_round_dangle(SL[j].t, SL[j].r, opt.world_to_screen_ratio);
 
                     vectors_to_arc(
                         cap, O, C[j], C[j],
-                        SL[j].T+bR, -SL[j].T+bR,
+                        SL[j].T+SL[j].R, -SL[j].T-SL[j].R,
                         dangle,
-                        SL[j].t, 0.0f, false, app_P);
-                    cap.Push(O-SL[j].T, C[j]);
-                    cap.Push(app_P, C[j]);
+                        SL[j].t+SL[j].r, 0.0f, false, O, j==0 ? cap1 : cap2, rr);
+                    //cap.Push(O-SL[j].T-SL[j].R, C[j]);
+                    //cap.Push(O, C[j]);
                     tris.Push(cap);
                 }
                 else
@@ -590,10 +587,11 @@ namespace Vaser
             /*if (cap_first || cap_last) {
                 anchor_cap(SA.P,SA.C, SA.SL,SA.vah, SA.cap_start,SA.cap_end);
             }*/
-            AnchorLate(P, C, SA.SL, SA.vah, SA.cap_start, SA.cap_end);
+            AnchorLate(opt, P, C, SA.SL, SA.vah, SA.cap_start, SA.cap_end);
         } //anchor
 
         public static void AnchorLate(
+                polyline_opt opt,
                 Point[] P, Color[] C, st_polyline[] SL,
                 VertexArrayHolder tris,
                 Point cap1, Point cap2)
@@ -661,12 +659,12 @@ namespace Vaser
 
                     if (normal_line_core_joint==1) {
                         vectors_to_arc(strip, P_1, C[1], C[1], SL[1].T1, SL[1].T,
-                            get_PLJ_round_dangle(SL[1].t,SL[1].r),
-                            SL[1].t, 0.0f, false, P1);
+                            get_PLJ_round_dangle(SL[1].t, SL[1].r, opt.world_to_screen_ratio),
+                            SL[1].t, 0.0f, false, P1, new Point(), 1);
                     } else if (normal_line_core_joint==2) {
                         vectors_to_arc(strip, P_1, C[1], C[1], SL[1].T1, SL[1].T,
-                            get_PLJ_round_dangle(SL[1].t,SL[1].r),
-                            SL[1].t, 0.0f, false, P5);
+                            get_PLJ_round_dangle(SL[1].t, SL[1].r, opt.world_to_screen_ratio),
+                            SL[1].t, 0.0f, false, P5, new Point(), 1);
                     }
                         tris.Push(strip);
                     } break;
@@ -674,13 +672,36 @@ namespace Vaser
             }
         } //AnchorLate
 
-        private static void inner_arc(
+        private static void vectors_to_arc(
                 VertexArrayHolder hold,
                 Point P, Color C, Color C2,
-                float dangle, float angle1, float angle2,
-                float r, float r2, bool ignor_ends,
-                Point apparent_P, bool use_apparent_P)
+                Point PA, Point PB, float dangle, float r, float r2, bool ignor_ends,
+                Point apparent_P, Point hint, float rr)
         {
+            // triangulate an inner arc between vectors A and B,
+            // A and B are position vectors relative to P
+            const float m_pi = (float) System.Math.PI;
+            Point A = PA * (1/r);
+            Point B = PB * (1/r);
+
+            float angle1 = (float) System.Math.Acos(A.x);
+            float angle2 = (float) System.Math.Acos(B.x);
+            if (A.y>0) {
+                angle1 = 2*m_pi-angle1;
+            }
+            if (B.y>0) {
+                angle2 = 2*m_pi-angle2;
+            }
+            if (hint.non_zero()) {
+                // special case when angle1 == angle2,
+                //   have to determine which side by hint
+                float angle3 = (float) System.Math.Acos(hint.x/hint.length());
+                if (hint.y>0) {
+                    angle3 = 2*m_pi-angle3;
+                }
+                angle1 += (angle3-angle1)*0.0000001f;
+            }
+
             // (apparent center) center of fan
             //draw the inner arc between angle1 and angle2 with dangle at each step.
             // -the arc has thickness, r is the outer radius and r2 is the inner radius,
@@ -694,19 +715,6 @@ namespace Vaser
             //    apparent_P is then the apparent origin of the pie.
             // -the result is pushed to hold, in form of a triangle strip
             // -an inner arc is an arc which is always shorter than or equal to a half circumference
-
-            void inner_arc_push(double x, double y)
-            {
-                //hold.Dot(new Point(P.x+(float)x*r, P.y-(float)y*r), 0.05f);
-                hold.Push(new Point(P.x+(float)x*r, P.y-(float)y*r), C, 1);
-                if (use_apparent_P) {
-                    hold.Push(apparent_P, C2, 1);
-                } else {
-                    hold.Push(new Point(P.x+(float)x*r2, P.y-(float)y*r2), C2, 1);
-                }
-            }
-
-            const float m_pi = (float) System.Math.PI;
 
             if (angle2 > angle1)
             {
@@ -731,95 +739,59 @@ namespace Vaser
 
             if (incremental)
             {
-                if (ignor_ends)
-                {
-                    for (float a=angle2-dangle; a>angle1; a-=dangle)
-                    {
-                        inner_arc_push(System.Math.Cos(a), System.Math.Sin(a));
-                    }
+                if (!ignor_ends) {
+                    hold.Push(new Point(apparent_P.x+PB.x, apparent_P.y+PB.y), C, rr);
+                    hold.Push(apparent_P, C2, rr);
                 }
-                else
+                for (float a=angle2-dangle; a>angle1; a-=dangle)
                 {
-                    for (float a=angle2; ; a-=dangle)
-                    {
-                        if (a<angle1) {
-                            a=angle1;
-                        }
-
-                        inner_arc_push(System.Math.Cos(a), System.Math.Sin(a));
-
-                        if (a<=angle1) {
-                            break;
-                        }
-                    }
+                    inner_arc_push(System.Math.Cos(a), System.Math.Sin(a));
+                }
+                if (!ignor_ends) {
+                    hold.Push(new Point(apparent_P.x+PA.x, apparent_P.y+PA.y), C, rr);
+                    hold.Push(apparent_P, C2, rr);
                 }
             }
             else //decremental
             {
-                if (ignor_ends)
-                {
-                    for (float a=angle2+dangle; a<angle1; a+=dangle)
-                    {
-                        inner_arc_push(System.Math.Cos(a), System.Math.Sin(a));
-                    }
+                if (!ignor_ends) {
+                    hold.Push(apparent_P, C2, rr);
+                    hold.Push(new Point(apparent_P.x+PB.x, apparent_P.y+PB.y), C, rr);
                 }
-                else
-                {
-                    for (float a=angle2; ;a+=dangle)
-                    {
-                        if (a>angle1) {
-                            a=angle1;
-                        }
-
-                        inner_arc_push(System.Math.Cos(a), System.Math.Sin(a));
-
-                        if (a>=angle1) {
-                            break;
-                        }
-                    }
+                for (float a=angle2+dangle; a<angle1; a+=dangle) {
+                    inner_arc_push(System.Math.Cos(a), System.Math.Sin(a), true);
+                }
+                if (!ignor_ends) {
+                    hold.Push(apparent_P, C2, rr);
+                    hold.Push(new Point(apparent_P.x+PA.x, apparent_P.y+PA.y), C, rr);
                 }
             }
-        } // inner_arc
 
-        private static void vectors_to_arc(
-                VertexArrayHolder hold,
-                Point P, Color C, Color C2,
-                Point A, Point B, float dangle, float r, float r2, bool ignor_ends,
-                Point apparent_P)
-        {
-            // triangulate an inner arc between vectors A and B,
-            // A and B are position vectors relative to P
-            const float m_pi = (float) System.Math.PI;
-            const float vaser_min_alw = 0.00000000001f;
-            A *= 1/r;
-            B *= 1/r;
-            if (A.x > 1.0f-vaser_min_alw) A.x = 1.0f-vaser_min_alw;
-            if (A.x <-1.0f+vaser_min_alw) A.x =-1.0f+vaser_min_alw;
-            if (B.x > 1.0f-vaser_min_alw) B.x = 1.0f-vaser_min_alw;
-            if (B.x <-1.0f+vaser_min_alw) B.x =-1.0f+vaser_min_alw;
-
-            float angle1 = (float) System.Math.Acos(A.x);
-            float angle2 = (float) System.Math.Acos(B.x);
-            if (A.y>0) {
-                angle1 = 2*m_pi-angle1;
+            void inner_arc_push(double x, double y, bool reverse=false)
+            {
+                Point PP = new Point(P.x+(float)x*r, P.y-(float)y*r);
+                //hold.Dot(PP, 0.05f); return;
+                if (!reverse) {
+                    hold.Push(PP, C, rr);
+                }
+                hold.Push(apparent_P, C2, rr);
+                if (reverse) {
+                    hold.Push(PP, C, rr);
+                }
             }
-            if (B.y>0) {
-                angle2 = 2*m_pi-angle2;
-            }
-
-            inner_arc(hold, P, C, C2, dangle, angle1, angle2, r, r2, ignor_ends, apparent_P, true);
         }
 
-        private static float get_PLJ_round_dangle(float t, float r)
+        private static float get_PLJ_round_dangle(float t, float r, float scale)
         {
-            float dangle = 0.25f;
-            float sum = t+r;
-            /* // resolution dependent
-            if (sum <= 1.44f+1.08f) //w<=4.0, feathering=1.0
-                dangle = 0.6f/(t+r);
-            else if (sum <= 3.25f+1.08f) //w<=6.5, feathering=1.0
-                dangle = 2.8f/(t+r);
-            */
+            float dangle;
+            float sum = (t+r) * scale;
+            if (sum <= 1.44f+1.08f) { //w<=4.0, feathering=1.0
+                dangle = 0.6f/sum;
+            } else if (sum <= 3.25f+1.08f) { //w<=6.5, feathering=1.0
+                dangle = 2.8f/sum;
+            } else {
+                dangle = 4.2f/sum;
+            }
             return dangle;
         }
 

@@ -80,12 +80,12 @@ namespace Vaser
             {
                 for (int b=3; b < hold.vert.Count; b+=2)
                 {
-                    vert.Add(hold.vert[b-3]); color.Add(hold.color[b-3]); fade.Add(0);
-                    vert.Add(hold.vert[b-2]); color.Add(hold.color[b-2]); fade.Add(0);
+                    vert.Add(hold.vert[b-3]); color.Add(hold.color[b-3]); fade.Add(-1);
+                    vert.Add(hold.vert[b-2]); color.Add(hold.color[b-2]); fade.Add(-1);
                     vert.Add(hold.vert[b-1]); color.Add(hold.color[b-1]); fade.Add(hold.fade[b-1]);
-                    vert.Add(hold.vert[b-1]); color.Add(hold.color[b-1]); fade.Add(0);
+                    vert.Add(hold.vert[b-1]); color.Add(hold.color[b-1]); fade.Add(-1);
                     vert.Add(hold.vert[b-2]); color.Add(hold.color[b-2]); fade.Add(hold.fade[b-0]);
-                    vert.Add(hold.vert[b-0]); color.Add(hold.color[b-0]); fade.Add(0);
+                    vert.Add(hold.vert[b-0]); color.Add(hold.color[b-0]); fade.Add(-1);
                 }
             }
         }
@@ -160,7 +160,7 @@ namespace Vaser
                 new Vector4(-1, -1, 1, 0),
                 new Vector4(0, -1, 1, 0),
                 new Vector4(1, -1, 1, 0),
-                new Vector4(1, 0, 2, 0),
+                new Vector4(-1, 0, 1, 0),
             };
 
             if (glmode == GL_TRIANGLES)

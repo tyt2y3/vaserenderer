@@ -66,7 +66,7 @@ public class Demo : MonoBehaviour {
             opt.joint = Polyline.polyline_opt.PLJ_round;
             Polyline.Anchor(SA, opt, false, false);
         } else if (mode == 4) {
-            opt.cap = Polyline.polyline_opt.PLC_butt;
+            opt.cap = Polyline.polyline_opt.PLC_round;
             Polyline.Segment(SA, opt, true, true);
         }
 
