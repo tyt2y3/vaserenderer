@@ -451,20 +451,20 @@ namespace Vaser
                     ln1.normalize();
                     ln2.normalize();
                     Point.dot(ln1, ln2, ref V);
-                    float cos_tho=-V.x-V.y;
+                    float cos_tho=V.x-V.y;
                     bool zero_degree = Point.negligible(cos_tho-1.0f);
                     bool d180_degree = cos_tho < -1.0f+0.0001f;
                     bool smaller_than_30_degree = cos_tho > 0.8660254f;
                     int result3 = 1;
 
-                    if ( (cos_tho < 0 && opt.joint==polyline_opt.PLJ_bevel) ||
-                         (opt.joint!=polyline_opt.PLJ_bevel && opt.cap==polyline_opt.PLC_round) ||
-                         (opt.joint==polyline_opt.PLJ_round) )
-                    {   //when greater than 90 degrees
-                        SL[i-1].bR *= 0.01f;
-                        SL[i]  .bR *= 0.01f;
-                        SL[i+1].bR *= 0.01f;
-                        //to solve an overdraw in bevel and round joint
+                    if (zero_degree)
+                    {
+                        Segment(SA, opt, cap_first, false, true);
+                        SA.P[0]=SA.P[1]; SA.P[1]=SA.P[2];
+                        SA.C[0]=SA.C[1]; SA.C[1]=SA.C[2];
+                        SA.W[0]=SA.W[1]; SA.W[1]=SA.W[2];
+                        Segment(SA, opt, false, cap_last, true);
+                        return;
                     }
 
                     Point.anchor_outward(ref T1, P_cur,P_nxt);
@@ -512,26 +512,6 @@ namespace Vaser
                     pt2 = pts[1];
                     bool is_result1t = result1t == 1;
                     bool is_result2t = result2t == 1;
-                    //
-                    /*if (zero_degree)
-                    {
-                        bool pre_full = is_result1t;
-                        opt.no_feather_at_cap=true;
-                        if (pre_full)
-                        {
-                            segment(SA, opt, true,cap_last, opt.joint==PLJ_round?PLC_round:PLC_butt);
-                        }
-                        else
-                        {
-                            char ori_cap = opt.cap;
-                            opt.cap = opt.joint==PLJ_round?PLC_round:PLC_butt;
-                            SA.P[0]=SA.P[1]; SA.P[1]=SA.P[2];
-                            SA.C[0]=SA.C[1]; SA.C[1]=SA.C[2];
-                            SA.W[0]=SA.W[1]; SA.W[1]=SA.W[2];
-                            segment(SA, opt, true,cap_last, ori_cap);
-                        }
-                        return 0;
-                    }*/
 
                     if (is_result1t | is_result2t)
                     {   //core degeneration

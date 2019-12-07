@@ -127,7 +127,7 @@ namespace Vaser
         //judgements
         public static bool negligible(float M)
         {
-            const float vaser_min_alw = 0.00000000001f;
+            const float vaser_min_alw = 0.0000001f;
             return -vaser_min_alw < M && M < vaser_min_alw;
         }
         public bool negligible()
