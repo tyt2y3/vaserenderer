@@ -151,16 +151,16 @@ namespace Vaser
             List<Vector4> uvs = new List<Vector4>();
             Vector4[] UVS = new Vector4[]
             {
-                new Vector4(0, 0, 1, 1),
-                new Vector4(1, 0, 1, 1),
-                new Vector4(1, 1, 1, 1),
-                new Vector4(0, 1, 1, 1),
-                new Vector4(-1, 1, 1, 1),
-                new Vector4(-1, 0, 1, 1),
-                new Vector4(-1, -1, 1, 1),
-                new Vector4(0, -1, 1, 1),
-                new Vector4(1, -1, 1, 1),
-                new Vector4(-1, 0, 1, 1),
+                new Vector4(0, 0, 1, 0),
+                new Vector4(1, 0, 1, 0),
+                new Vector4(1, 1, 1, 0),
+                new Vector4(0, 1, 1, 0),
+                new Vector4(-1, 1, 1, 0),
+                new Vector4(-1, 0, 1, 0),
+                new Vector4(-1, -1, 1, 0),
+                new Vector4(0, -1, 1, 0),
+                new Vector4(1, -1, 1, 0),
+                new Vector4(-1, 0, 1, 0),
             };
 
             if (glmode == GL_TRIANGLES)
