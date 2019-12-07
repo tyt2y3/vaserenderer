@@ -8,7 +8,7 @@ public class Demo : MonoBehaviour {
 
         Polyline.st_anchor SA = new Polyline.st_anchor();
         VertexArrayHolder vah = null;
-        int mode = 0;
+        int mode = 1;
         if (mode == 0) {
             Point A = new Point(-0.5f, 0.5f);
             Point B = new Point(0.5f, 0.5f);
@@ -34,8 +34,8 @@ public class Demo : MonoBehaviour {
             SA.P[2] = new Point(-0.25f, -1f);
         } else if (mode == 4) {
             // segment
-            SA.P[0] = new Point(1f, -0.5f);
-            SA.P[1] = new Point(-1f, 0.25f);
+            SA.P[0] = new Point(-1f, -0.5f);
+            SA.P[1] = new Point(1f, 0.25f);
         }
 
         if (mode > 0) {
@@ -57,10 +57,11 @@ public class Demo : MonoBehaviour {
             }
             if (mode <= 3) {
                 opt.joint = Polyline.polyline_opt.PLJ_round;
-                Polyline.Anchor(SA, opt, false, false);
+                opt.cap = Polyline.polyline_opt.PLC_round;
+                Polyline.Anchor(SA, opt, true, true);
             } else if (mode == 4) {
                 opt.cap = Polyline.polyline_opt.PLC_round;
-                Polyline.Segment(SA, opt, true, true);
+                Polyline.Segment(SA, opt, true, true, true);
             }
             vah = SA.vah;
         }

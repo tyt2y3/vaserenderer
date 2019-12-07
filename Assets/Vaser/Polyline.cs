@@ -131,7 +131,7 @@ namespace Vaser
             R = DP*r;
         }
 
-        public static void Segment(st_anchor SA, polyline_opt opt, bool cap_first, bool cap_last, int last_cap_type=-1)
+        public static void Segment(st_anchor SA, polyline_opt opt, bool cap_first, bool cap_last, bool core)
         {
             float[] weight = SA.W;
 
@@ -148,15 +148,13 @@ namespace Vaser
             Point cap_start=new Point(), cap_end=new Point();
             st_polyline[] SL = new st_polyline[2];
 
-            /* // resolution dependent
             for (int i=0; i<2; i++)
-            {
-                if ( weight[i]>=0.0 && weight[i]<1.0)
-                {
-                    double f=weight[i]-System.Math.floor(weight[i]);
-                    C[i].a *=f;
+            {   //lower the transparency for weight < 1.0
+                float actualWeight = weight[i] * opt.world_to_screen_ratio;
+                if (actualWeight >= 0.0 && actualWeight < 1.0) {
+                    C[i].a *= actualWeight;
                 }
-            } */
+            }
 
             {
                 int i = 0;
@@ -192,12 +190,10 @@ namespace Vaser
                     make_T_R_C(ref P[i-1], ref P[i], ref T2, ref R2, ref bR, weight[i], opt, ref r, ref t, ref dd, false);
                 }
 
-                last_cap_type = last_cap_type==-1 ? opt.cap:last_cap_type;
-
                 if (cap_last)
                 {
-                    if (last_cap_type==polyline_opt.PLC_square) {
-                        P[1] = new Point(P[1]) + bR * (t+r);
+                    if (opt.cap==polyline_opt.PLC_square) {
+                        P[1] += bR * (t+r);
                     }
                     cap_end = bR;
                     if (opt.feather && !opt.no_feather_at_cap) {
@@ -205,7 +201,7 @@ namespace Vaser
                     }
                 }
 
-                SL[i].djoint = (char) last_cap_type;
+                SL[i].djoint = opt.cap;
                 SL[i].t=t;
                 SL[i].r=r;
                 SL[i].T=T2;
@@ -215,14 +211,14 @@ namespace Vaser
                 SL[i].degenR = false;
             }
 
-            SegmentLate(opt, P, C, SL, SA.vah, cap_start, cap_end);
+            SegmentLate(opt, P, C, SL, SA.vah, cap_start, cap_end, core);
         }
 
         public static void SegmentLate(
                 polyline_opt opt,
                 Point[] P, Color[] C, st_polyline[] SL,
                 VertexArrayHolder tris,
-                Point cap1, Point cap2)
+                Point cap1, Point cap2, bool core)
         {
             tris.SetGlDrawMode(VertexArrayHolder.GL_TRIANGLES);
 
@@ -255,10 +251,12 @@ namespace Vaser
                 P4c = P4 + cap2;
 
             //core
-            push_quad(
-                tris, ref P1, ref P2, ref P3, ref P4,
-                ref C[0], ref C[0], ref C[1], ref C[1],
-                rr, 0, 0, rr);
+            if (core) {
+                push_quad(
+                    tris, ref P1, ref P2, ref P3, ref P4,
+                    ref C[0], ref C[0], ref C[1], ref C[1],
+                    rr, 0, 0, rr);
+            }
 
             //caps
             for (int j=0; j<2; j++)
@@ -343,31 +341,15 @@ namespace Vaser
 
             bool varying_weight = !(weight[0]==weight[1] & weight[1]==weight[2]);
 
-            /* // resolution dependent
-            float combined_weight=weight[1]+(opt.feather?opt.feathering:0.0);
-            if (combined_weight < cri_segment_approx)
-            {
-                segment(SA, &opt, cap_first,false, opt.joint==PLJ_round?PLC_round:PLC_butt);
-                char ori_cap = opt.cap;
-                opt.cap = opt.joint==PLJ_round?PLC_round:PLC_butt;
-                SA.P[0]=SA.P[1]; SA.P[1]=SA.P[2];
-                SA.C[0]=SA.C[1]; SA.C[1]=SA.C[2];
-                SA.W[0]=SA.W[1]; SA.W[1]=SA.W[2];
-                segment(SA, &opt, false,cap_last, ori_cap);
-                return 0;
-            }*/
-
             Point T1=new Point(), T2=new Point(), T21=new Point(), T31=new Point(), RR=new Point();
 
-            /* // resolution dependent
             for (int i=0; i<3; i++)
             {   //lower the transparency for weight < 1.0
-                if (weight[i]>=0.0 && weight[i]<1.0)
-                {
-                    float f=weight[i];
-                    C[i].a *=f;
+                float actualWeight = weight[i] * opt.world_to_screen_ratio;
+                if (actualWeight >= 0.0 && actualWeight < 1.0) {
+                    C[i].a *= actualWeight;
                 }
-            }*/
+            }
 
             {
                 int i=0;
@@ -587,11 +569,17 @@ namespace Vaser
                 SL[i].degenT = false;
             }
 
-            /*if (cap_first || cap_last) {
-                anchor_cap(SA.P,SA.C, SA.SL,SA.vah, SA.cap_start,SA.cap_end);
-            }*/
             AnchorLate(opt, P, C, SA.SL, SA.vah, SA.cap_start, SA.cap_end);
-        } //anchor
+            if (cap_first) {
+                Segment(SA, opt, true, false, false);
+            }
+            if (cap_last) {
+                SA.P[0] = SA.P[1]; SA.P[1] = SA.P[2];
+                SA.C[0] = SA.C[1]; SA.C[1] = SA.C[2];
+                SA.W[0] = SA.W[1]; SA.W[1] = SA.W[2];
+                Segment(SA, opt, false, true, false);
+            }
+        } //Anchor
 
         public static void AnchorLate(
                 polyline_opt opt,
@@ -705,11 +693,19 @@ namespace Vaser
             if (hint.non_zero()) {
                 // special case when angle1 == angle2,
                 //   have to determine which side by hint
-                float angle3 = (float) System.Math.Acos(hint.x/hint.length());
-                if (hint.y>0) {
-                    angle3 = 2*m_pi-angle3;
+                if (hint.x > 0 && hint.y == 0) {
+                    angle1 -= (angle1 < angle2 ? 1:-1) * 0.00001f;
+                } else if (hint.x == 0 && hint.y > 0) {
+                    angle1 -= (angle1 < angle2 ? 1:-1) * 0.00001f;
+                } else if (hint.x > 0 && hint.y > 0) {
+                    angle1 -= (angle1 < angle2 ? 1:-1) * 0.00001f;
+                } else if (hint.x > 0 && hint.y < 0) {
+                    angle1 -= (angle1 < angle2 ? 1:-1) * 0.00001f;
+                } else if (hint.x < 0 && hint.y > 0) {
+                    angle1 += (angle1 < angle2 ? 1:-1) * 0.00001f;
+                } else if (hint.x < 0 && hint.y < 0) {
+                    angle1 += (angle1 < angle2 ? 1:-1) * 0.00001f;
                 }
-                angle1 += (angle3-angle1)*0.0000001f;
             }
 
             // (apparent center) center of fan
