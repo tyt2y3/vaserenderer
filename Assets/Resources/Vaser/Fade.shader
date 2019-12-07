@@ -36,7 +36,16 @@
 
             fixed4 frag (v2f i) : SV_Target {
                 fixed4 col = i.color;
-                float fact = max(abs(i.uv.x), abs(i.uv.y));
+                float fact;
+                if (i.uv.w == 0) {
+                    // rectangular fade
+                    fact = max(abs(i.uv.x), abs(i.uv.y));
+                } else if (i.uv.w == 1) {
+                    // circular fade
+                    fact = sqrt(pow(i.uv.x, 2) + pow(i.uv.y, 2));
+                } else {
+                    fact = 0;
+                }
                 fact = min((1 - fact) * i.uv.z, 1);
                 col.a *= fact;
                 return col;
