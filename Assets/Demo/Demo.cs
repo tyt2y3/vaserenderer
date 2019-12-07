@@ -24,12 +24,12 @@ public class Demo : MonoBehaviour {
         */
 
         Polyline.st_anchor SA = new Polyline.st_anchor();
-        int mode = 4;
+        int mode = 1;
         if (mode == 1) {
             // normal anchor
             SA.P[0] = new Point(-1f, -0.5f);
             SA.P[1] = new Point(0f, 0.75f);
-            SA.P[2] = new Point(1f, 0.25f);
+            SA.P[2] = new Point(1f, -0.5f);
         } else if (mode == 2) {
             // degen prefull
             SA.P[0] = new Point(-1f, -0.75f);

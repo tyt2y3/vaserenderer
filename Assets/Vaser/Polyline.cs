@@ -107,7 +107,7 @@ namespace Vaser
             ref Point P1, ref Point P2, ref Point T, ref Point R, ref Point C,
             float w, polyline_opt opt,
             ref float rr, ref float tt, ref float dist,
-            bool seg_mode=false)
+            bool anchor_mode)
         {
             float t = 1.0f, r = 0.0f;
 
@@ -115,6 +115,9 @@ namespace Vaser
             determine_t_r(w, ref t, ref r, opt.world_to_screen_ratio);
             if (opt.feather && !opt.no_feather_at_core && opt.feathering != 1.0) {
                 r *= opt.feathering;
+            }
+            if (anchor_mode) {
+                t += r;
             }
 
             //output
@@ -158,7 +161,7 @@ namespace Vaser
             {
                 int i = 0;
                 float dd = 0f;
-                make_T_R_C(ref P[i], ref P[i+1], ref T2, ref R2, ref bR, weight[i], opt, ref r, ref t, ref dd, true);
+                make_T_R_C(ref P[i], ref P[i+1], ref T2, ref R2, ref bR, weight[i], opt, ref r, ref t, ref dd, false);
 
                 if (cap_first)
                 {
@@ -186,7 +189,7 @@ namespace Vaser
                 int i = 1;
                 float dd = 0f;
                 if (varying_weight) {
-                    make_T_R_C(ref P[i-1], ref P[i], ref T2, ref R2, ref bR, weight[i], opt, ref r, ref t, ref dd, true);
+                    make_T_R_C(ref P[i-1], ref P[i], ref T2, ref R2, ref bR, weight[i], opt, ref r, ref t, ref dd, false);
                 }
 
                 last_cap_type = last_cap_type==-1 ? opt.cap:last_cap_type;
@@ -267,8 +270,8 @@ namespace Vaser
                     continue;
                 }
 
-                if (SL[j].djoint == polyline_opt.PLC_round)
-                {   //round cap
+                if (SL[j].djoint == polyline_opt.PLC_round) {
+                    //round cap
                     Point O = P[j];
                     float dangle = get_PLJ_round_dangle(SL[j].t, SL[j].r, opt.world_to_screen_ratio);
 
@@ -276,13 +279,12 @@ namespace Vaser
                         cap, O, C[j], C[j],
                         SL[j].T+SL[j].R, -SL[j].T-SL[j].R,
                         dangle,
-                        SL[j].t+SL[j].r, 0.0f, false, O, j==0 ? cap1 : cap2, rr);
+                        SL[j].t+SL[j].r, 0.0f, false, O, j==0 ? cap1 : cap2, rr, false);
                     //cap.Push(O-SL[j].T-SL[j].R, C[j]);
                     //cap.Push(O, C[j]);
                     tris.Push(cap);
-                }
-                else
-                {   //rectangular cap
+                } else if (SL[j].djoint != polyline_opt.PLC_none) {
+                    //rectangular cap
                     Point Pj, Pjr, Pjc, Pk, Pkr, Pkc;
                     if (j==0)
                     {
@@ -372,9 +374,9 @@ namespace Vaser
 
                 Point cap0=new Point(), cap1=new Point();
                 float r=0f,t=0f,d=0f;
-                make_T_R_C(ref P[i], ref P[i+1], ref T2, ref RR, ref cap1, weight[i], opt, ref r, ref t, ref d);
+                make_T_R_C(ref P[i], ref P[i+1], ref T2, ref RR, ref cap1, weight[i], opt, ref r, ref t, ref d, true);
                 if (varying_weight) {
-                make_T_R_C(ref P[i], ref P[i+1], ref T31, ref RR, ref cap0, weight[i+1], opt, ref d, ref d, ref d);
+                make_T_R_C(ref P[i], ref P[i+1], ref T31, ref RR, ref cap0, weight[i+1], opt, ref d, ref d, ref d, true);
                 } else {
                     T31 = T2;
                 }
@@ -406,7 +408,7 @@ namespace Vaser
 
                 Point cap0=new Point(), cap2=new Point();
                 float t=0f,r=0f,d=0f;
-                make_T_R_C(ref P[i-1], ref P[i], ref cap0, ref cap0, ref cap2, weight[i], opt, ref r, ref t, ref d);
+                make_T_R_C(ref P[i-1], ref P[i], ref cap0, ref cap0, ref cap2, weight[i], opt, ref r, ref t, ref d, true);
                 if (opt.cap==polyline_opt.PLC_square)
                 {
                     P[2] = P[2] + cap2 * (t+r);
@@ -435,16 +437,16 @@ namespace Vaser
                 {
                 Point cap0=new Point(), bR=new Point();
                 float length_cur=0f, length_nxt=0f, d=0f;
-                make_T_R_C(ref P_las, ref P_cur, ref T1, ref RR, ref cap0, weight[i-1], opt, ref d, ref d, ref length_cur);
+                make_T_R_C(ref P_las, ref P_cur, ref T1, ref RR, ref cap0, weight[i-1], opt, ref d, ref d, ref length_cur, true);
                 if (varying_weight) {
-                make_T_R_C(ref P_las, ref P_cur, ref T21, ref RR, ref cap0, weight[i], opt, ref d, ref d, ref d);
+                make_T_R_C(ref P_las, ref P_cur, ref T21, ref RR, ref cap0, weight[i], opt, ref d, ref d, ref d, true);
                 } else {
                     T21 = T1;
                 }
 
-                make_T_R_C(ref P_cur, ref P_nxt, ref T2, ref RR, ref bR, weight[i], opt, ref r, ref t, ref length_nxt);
+                make_T_R_C(ref P_cur, ref P_nxt, ref T2, ref RR, ref bR, weight[i], opt, ref r, ref t, ref length_nxt, true);
                 if (varying_weight) {
-                make_T_R_C(ref P_cur, ref P_nxt, ref T31, ref RR, ref cap0, weight[i+1], opt, ref d, ref d, ref d);
+                make_T_R_C(ref P_cur, ref P_nxt, ref T31, ref RR, ref cap0, weight[i+1], opt, ref d, ref d, ref d, true);
                 } else {
                     T31 = T2;
                 }
@@ -452,6 +454,7 @@ namespace Vaser
                 SL[i].T=T2;
                 SL[i].bR=bR;
                 SL[i].t=t;
+                SL[i].r=r;
                 SL[i].degenT = false;
 
                 SL[i+1].T1=T31;
@@ -576,7 +579,7 @@ namespace Vaser
 
                 Point cap0=new Point();
                 float r=0f,t=0f,d=0f;
-                make_T_R_C(ref P[i-1], ref P[i], ref T2, ref RR, ref cap0, weight[i], opt, ref r, ref t, ref d);
+                make_T_R_C(ref P[i-1], ref P[i], ref T2, ref RR, ref cap0, weight[i], opt, ref r, ref t, ref d, true);
 
                 SL[i].djoint=opt.cap;
                 SL[i].T=T2;
@@ -616,27 +619,28 @@ namespace Vaser
             P7 = P_2 - SL[2].T;
 
             int normal_line_core_joint = 1; //0:dont draw, 1:draw, 2:outer only
+            float rr = SL[1].t / SL[1].r;
 
             if (SL[1].degenT)
             {
                 P1 = SL[1].PT;
-                tris.Push3(P1, P3, P2, C[1], C[0], C[1], 0, 1, 0); //fir seg
-                tris.Push3(P1, P5, P6, C[1], C[1], C[2], 0, 1, 0); //las seg
+                tris.Push3(P1, P3, P2, C[1], C[0], C[1], 0, rr, 0); //fir seg
+                tris.Push3(P1, P5, P6, C[1], C[1], C[2], 0, rr, 0); //las seg
 
                 if (SL[1].pre_full) {
-                    tris.Push3(P3, P1, P4, C[0], C[1], C[0], 0, 1, 0);
+                    tris.Push3(P3, P1, P4, C[0], C[1], C[0], 0, rr, 0);
                 } else {
-                    tris.Push3(P1, P6, P7, C[1], C[2], C[2], 0, 0, 1);
+                    tris.Push3(P1, P6, P7, C[1], C[2], C[2], 0, 0, rr);
                 }
             }
             else
             {
                 // normal first segment
-                tris.Push3(P2, P4, P3, C[1], C[0], C[0], 0, 0, 1);
-                tris.Push3(P4, P2, P1, C[0], C[1], C[1], 0, 0, 1);
+                tris.Push3(P2, P4, P3, C[1], C[0], C[0], 0, 0, rr);
+                tris.Push3(P4, P2, P1, C[0], C[1], C[1], 0, 0, rr);
                 // normal last segment
-                tris.Push3(P5, P7, P1, C[1], C[2], C[1], 0, 1, 0);
-                tris.Push3(P7, P5, P6, C[2], C[1], C[2], 0, 1, 0);
+                tris.Push3(P5, P7, P1, C[1], C[2], C[1], 0, rr, 0);
+                tris.Push3(P7, P5, P6, C[2], C[1], C[2], 0, rr, 0);
             }
 
             if (normal_line_core_joint != 0)
@@ -644,13 +648,13 @@ namespace Vaser
                 switch (SL[1].djoint)
                 {
                     case polyline_opt.PLJ_miter:
-                        tris.Push3(P2, P0, P1, C[1], C[1], C[1], 1, 0, 0);
-                        tris.Push3(P1, P0, P5, C[1], C[1], C[1], 0, 1, 0);
+                        tris.Push3(P2, P0, P1, C[1], C[1], C[1], rr, 0, 0);
+                        tris.Push3(P1, P0, P5, C[1], C[1], C[1], 0, rr, 0);
                     break;
 
                     case polyline_opt.PLJ_bevel:
                         if (normal_line_core_joint==1)
-                        tris.Push3(P2, P5, P1, C[1], C[1], C[1], 1, 0, 0);
+                        tris.Push3(P2, P5, P1, C[1], C[1], C[1], rr, 0, 0);
                     break;
 
                     case polyline_opt.PLJ_round: {
@@ -660,11 +664,11 @@ namespace Vaser
                     if (normal_line_core_joint==1) {
                         vectors_to_arc(strip, P_1, C[1], C[1], SL[1].T1, SL[1].T,
                             get_PLJ_round_dangle(SL[1].t, SL[1].r, opt.world_to_screen_ratio),
-                            SL[1].t, 0.0f, false, P1, new Point(), 1);
+                            SL[1].t, 0.0f, false, P1, new Point(), rr, true);
                     } else if (normal_line_core_joint==2) {
                         vectors_to_arc(strip, P_1, C[1], C[1], SL[1].T1, SL[1].T,
                             get_PLJ_round_dangle(SL[1].t, SL[1].r, opt.world_to_screen_ratio),
-                            SL[1].t, 0.0f, false, P5, new Point(), 1);
+                            SL[1].t, 0.0f, false, P5, new Point(), rr, true);
                     }
                         tris.Push(strip);
                     } break;
@@ -676,13 +680,19 @@ namespace Vaser
                 VertexArrayHolder hold,
                 Point P, Color C, Color C2,
                 Point PA, Point PB, float dangle, float r, float r2, bool ignor_ends,
-                Point apparent_P, Point hint, float rr)
+                Point apparent_P, Point hint, float rr, bool inner_fade)
         {
             // triangulate an inner arc between vectors A and B,
             // A and B are position vectors relative to P
             const float m_pi = (float) System.Math.PI;
             Point A = PA * (1/r);
             Point B = PB * (1/r);
+            float rrr;
+            if (inner_fade) {
+                rrr = 0;
+            } else {
+                rrr = -1;
+            }
 
             float angle1 = (float) System.Math.Acos(A.x);
             float angle2 = (float) System.Math.Acos(B.x);
@@ -740,30 +750,30 @@ namespace Vaser
             if (incremental)
             {
                 if (!ignor_ends) {
-                    hold.Push(new Point(apparent_P.x+PB.x, apparent_P.y+PB.y), C, rr);
-                    hold.Push(apparent_P, C2, rr);
+                    hold.Push(new Point(P.x+PB.x, P.y+PB.y), C, rr);
+                    hold.Push(apparent_P, C2, rrr);
                 }
                 for (float a=angle2-dangle; a>angle1; a-=dangle)
                 {
                     inner_arc_push(System.Math.Cos(a), System.Math.Sin(a));
                 }
                 if (!ignor_ends) {
-                    hold.Push(new Point(apparent_P.x+PA.x, apparent_P.y+PA.y), C, rr);
-                    hold.Push(apparent_P, C2, rr);
+                    hold.Push(new Point(P.x+PA.x, P.y+PA.y), C, rr);
+                    hold.Push(apparent_P, C2, rrr);
                 }
             }
             else //decremental
             {
                 if (!ignor_ends) {
                     hold.Push(apparent_P, C2, rr);
-                    hold.Push(new Point(apparent_P.x+PB.x, apparent_P.y+PB.y), C, rr);
+                    hold.Push(new Point(P.x+PB.x, P.y+PB.y), C, rrr);
                 }
                 for (float a=angle2+dangle; a<angle1; a+=dangle) {
                     inner_arc_push(System.Math.Cos(a), System.Math.Sin(a), true);
                 }
                 if (!ignor_ends) {
                     hold.Push(apparent_P, C2, rr);
-                    hold.Push(new Point(apparent_P.x+PA.x, apparent_P.y+PA.y), C, rr);
+                    hold.Push(new Point(P.x+PA.x, P.y+PA.y), C, rrr);
                 }
             }
 
@@ -773,10 +783,10 @@ namespace Vaser
                 //hold.Dot(PP, 0.05f); return;
                 if (!reverse) {
                     hold.Push(PP, C, rr);
-                }
-                hold.Push(apparent_P, C2, rr);
-                if (reverse) {
-                    hold.Push(PP, C, rr);
+                    hold.Push(apparent_P, C2, rrr);
+                } else {
+                    hold.Push(apparent_P, C2, rr);
+                    hold.Push(PP, C, rrr);
                 }
             }
         }
