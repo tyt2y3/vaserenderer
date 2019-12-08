@@ -127,7 +127,12 @@ namespace Vaser
         //judgements
         public static bool negligible(float M)
         {
-            const float vaser_min_alw = 0.0000001f;
+            const float vaser_min_alw = 0.000000001f;
+            return -vaser_min_alw < M && M < vaser_min_alw;
+        }
+        public static bool negligible(double M)
+        {
+            const double vaser_min_alw = 0.0000000001;
             return -vaser_min_alw < M && M < vaser_min_alw;
         }
         public bool negligible()
@@ -220,7 +225,7 @@ namespace Vaser
                 float[] u_out = null)
         {   //Determine the intersection point of two line segments
             float mua, mub;
-            float denom, numera, numerb;
+            double denom, numera, numerb;
 
             denom  = (P4.y-P3.y) * (P2.x-P1.x) - (P4.x-P3.x) * (P2.y-P1.y);
             numera = (P4.x-P3.x) * (P1.y-P3.y) - (P4.y-P3.y) * (P1.x-P3.x);
@@ -240,8 +245,8 @@ namespace Vaser
                 return 0; //meaning lines are parallel
             }
 
-            mua = numera / denom;
-            mub = numerb / denom;
+            mua = (float) (numera / denom);
+            mub = (float) (numerb / denom);
             if (u_out != null) {
                 u_out[0] = mua;
                 u_out[1] = mub;

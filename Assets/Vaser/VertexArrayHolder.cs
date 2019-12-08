@@ -201,13 +201,13 @@ namespace Vaser
                                 fadeU = fade[i-0];
                             }
                             if (fadeU > 0 && fadeV > 0) {
-                                Debug.Log("fade both");
+                                //Debug.Log("fade both");
                                 addUV(8, fadeU);
                             } else if (fadeU > 0) {
-                                Debug.Log("fadeU");
+                                //Debug.Log("fadeU");
                                 addUV(2, fadeU);
                             } else if (fadeV > 0) {
-                                Debug.Log("fadeV");
+                                //Debug.Log("fadeV");
                                 addUV(6, fadeV);
                             }
                         }
@@ -228,11 +228,11 @@ namespace Vaser
                                 fadeU = fade[i-0];
                             }
                             if (fadeU > 0 || fadeV > 0) {
-                                Debug.Log("fade side");
+                                //Debug.Log("fade side");
                                 float fader = fadeU > 0 ? fadeU : fadeV;
                                 addUV(1, fader);
                             } else {
-                                Debug.Log("corner fade");
+                                //Debug.Log("corner fade");
                                 float fader = fade[i-2] > 0 ? fade[i-2] : fade[i-1] > 0 ? fade[i-1] : fade[i-0];
                                 addUV(5, fader);
                             }
@@ -254,11 +254,11 @@ namespace Vaser
                                 fadeU = fade[i-0];
                             }
                             if (fadeU > 0 || fadeV > 0) {
-                                Debug.Log("fan fade");
+                                //Debug.Log("fan fade");
                                 float fader = fadeU > 0 ? fadeU : fadeV;
                                 addUV(9, fader);
                             } else {
-                                Debug.Log("zero fade");
+                                //Debug.Log("zero fade");
                                 float fader = fade[i-2] > 0 ? fade[i-2] : fade[i-1] > 0 ? fade[i-1] : fade[i-0];
                                 addUV(0, fader);
                             }

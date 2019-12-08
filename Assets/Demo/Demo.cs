@@ -11,6 +11,7 @@ public class Demo : MonoBehaviour {
         opt.feathering = 15.0f;
         opt.joint = Polyline.polyline_opt.PLJ_round;
         opt.cap = Polyline.polyline_opt.PLC_round;
+        opt.triangulation = true;
         {
             Camera cam = Camera.main;
             Vector3 a = cam.WorldToScreenPoint(new Vector3(0,0,0));
@@ -21,18 +22,18 @@ public class Demo : MonoBehaviour {
         Polyline polyline = new Polyline(
             new List<Point> {
                 new Point(0, .75f),
-                new Point(-.75f, 0),
-                new Point(.75f, 0),
+                new Point(-.75f, -.1f),
+                new Point(.75f, .1f),
                 new Point(0, -.75f),
             },
             new List<Color> {
                 Color.red,
                 Color.green,
                 Color.blue,
-                Color.yellow,
+                Color.red,
             },
             new List<float> {
-                0.15f, 0.15f, 0.15f, 0.15f,
+                0.05f, 0.15f, 0.15f, 0.05f,
             },
             opt
         );

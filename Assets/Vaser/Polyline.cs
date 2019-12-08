@@ -35,11 +35,23 @@ namespace Vaser
         }
 
         public Polyline(
-            List<Point> P, //pointer to array of point of a polyline
-            List<Color> C, //array of color
-            List<float> W, //array of weight
-            polyline_opt opt) : //options
-                this (P, C, W, opt, null)
+            List<Point> P,
+            List<Color> C,
+            List<float> W,
+            polyline_opt opt)
+                : this (P, C, W, opt, null)
+        {
+            // empty
+        }
+
+        public Polyline(
+            List<Point> P,
+            Color C,
+            float W,
+            polyline_opt opt)
+                : this (P, new List<Color> {C}, new List<float> {W}, opt, new polyline_inopt {
+                    const_color = true, const_weight = true,
+                })
         {
             // empty
         }
@@ -285,8 +297,8 @@ namespace Vaser
             inopt.holder.Push(SA.vah);
 
             if (opt.triangulation) {
-                DrawTriangles(vcore, inopt.holder);
-                DrawTriangles(SA.vah, inopt.holder);
+                DrawTriangles(vcore, inopt.holder, opt.world_to_screen_ratio);
+                DrawTriangles(SA.vah, inopt.holder, opt.world_to_screen_ratio);
             }
         }
 
@@ -349,7 +361,7 @@ namespace Vaser
 
             inopt.holder.Push(SA.vah);
             if (opt.triangulation) {
-                DrawTriangles(SA.vah, inopt.holder);
+                DrawTriangles(SA.vah, inopt.holder, opt.world_to_screen_ratio);
             }
         }
 
@@ -382,9 +394,12 @@ namespace Vaser
             }
         }
 
-        private static void DrawTriangles(VertexArrayHolder triangles, VertexArrayHolder holder)
+        private static void DrawTriangles(VertexArrayHolder triangles, VertexArrayHolder holder, float scale)
         {
-            Color col = new Color(1, 0, 0, 0.5f);
+            polyline_opt opt = new polyline_opt();
+            opt.cap = polyline_opt.PLC_none;
+            //opt.joint = polyline_opt.PLJ_bevel;
+            opt.world_to_screen_ratio = scale;
             if (triangles.glmode == VertexArrayHolder.GL_TRIANGLES) {
                 for (int i=0; i<triangles.GetCount(); i++)
                 {
@@ -393,8 +408,8 @@ namespace Vaser
                     P.Add(triangles.Get(i)); i+=1;
                     P.Add(triangles.Get(i));
                     P.Add(P[0]);
-                    //Polyline polyline = new Polyline(P, col, 1, null);
-                    //holder.Push(polyline.holder);
+                    Polyline polyline = new Polyline(P, Color.red, 1/scale, opt);
+                    holder.Push(polyline.holder);
                 }
             } else if (triangles.glmode == VertexArrayHolder.GL_TRIANGLE_STRIP) {
                 for (int i=2; i<triangles.GetCount(); i++)
@@ -403,8 +418,8 @@ namespace Vaser
                     P.Add(triangles.Get(i-2));
                     P.Add(triangles.Get(i));
                     P.Add(triangles.Get(i-1));
-                    //Polyline polyline = new Polyline(P, col, 1, null);
-                    //holder.Push(polyline.holder);
+                    Polyline polyline = new Polyline(P, Color.red, 1/scale, opt);
+                    holder.Push(polyline.holder);
                 }
             }
         }
@@ -690,7 +705,7 @@ namespace Vaser
                 float r=0f,t=0f,d=0f;
                 make_T_R_C(ref P[i], ref P[i+1], ref T2, ref RR, ref cap1, weight[i], opt, ref r, ref t, ref d, true);
                 if (varying_weight) {
-                make_T_R_C(ref P[i], ref P[i+1], ref T31, ref RR, ref cap0, weight[i+1], opt, ref d, ref d, ref d, true);
+                    make_T_R_C(ref P[i], ref P[i+1], ref T31, ref RR, ref cap0, weight[i+1], opt, ref d, ref d, ref d, true);
                 } else {
                     T31 = T2;
                 }
@@ -774,7 +789,7 @@ namespace Vaser
                 SL[i+1].T1=T31;
                 }
 
-                {   //2nd to 2nd last point
+                {   //2nd point
 
                     //find the angle between the 2 line segments
                     Point ln1=new Point(), ln2=new Point(), V=new Point();
@@ -784,9 +799,8 @@ namespace Vaser
                     ln2.normalize();
                     Point.dot(ln1, ln2, ref V);
                     float cos_tho=V.x-V.y;
-                    bool zero_degree = Point.negligible(cos_tho-1.0f);
+                    bool zero_degree = System.Math.Abs(cos_tho-1.0f) < 0.0000001f;
                     bool d180_degree = cos_tho < -1.0f+0.0001f;
-                    bool smaller_than_30_degree = cos_tho > 0.8660254f;
                     int result3 = 1;
 
                     if (zero_degree)
@@ -799,6 +813,13 @@ namespace Vaser
                         return;
                     }
 
+                    SL[i].djoint = opt.joint;
+                    if (opt.joint == polyline_opt.PLJ_miter) {
+                        if (System.Math.Abs(cos_tho) >= cos_cri_angle) {
+                            SL[i].djoint = polyline_opt.PLJ_bevel;
+                        }
+                    }
+
                     Point.anchor_outward(ref T1, P_cur,P_nxt);
                     Point.anchor_outward(ref T21, P_cur,P_nxt);
                         SL[i].T1.follow_signs(T21);
@@ -808,17 +829,22 @@ namespace Vaser
 
                     {   //must do intersection
                         Point interP=new Point(), vP=new Point();
+                        float[] pts = new float[2];
                         result3 = Point.intersect(
-                                    P_las+T1, P_cur+T21,
-                                    P_nxt+T31, P_cur+T2,
-                                    ref interP);
+                            P_las+T1, P_cur+T21,
+                            P_nxt+T31, P_cur+T2,
+                            ref interP, pts);
 
                         if (result3 != 0) {
                             vP = interP - P_cur;
                             SL[i].vP=vP;
+                            if (pts[0] > 2 || pts[1] > 2) {
+                                SL[i].djoint = polyline_opt.PLJ_bevel;
+                            }
                         } else {
                             SL[i].vP=SL[i].T;
-                            Debug.Log("intersection failed: cos(angle)=%.4f, angle=%.4f(degree)"/*, cos_tho, System.Math.Acos(cos_tho)*180/3.14159*/);
+                            SL[i].djoint = polyline_opt.PLJ_bevel;
+                            Debug.Log(System.String.Format("intersection failed: cos(angle)={0}, angle={1} (degree)", cos_tho, System.Math.Acos(cos_tho)*180/3.14159));
                         }
                     }
 
@@ -830,18 +856,20 @@ namespace Vaser
                     //make intersections
                     Point PT1=new Point(), PT2=new Point();
                     float pt1=0f,pt2=0f;
-                    float[] pts = new float[2];
-
-                    int result1t = Point.intersect(
-                                P_nxt-T31, P_nxt+T31,
-                                P_las+T1, P_cur+T21, //knife1_a
-                                ref PT1, pts); //core
-                    pt1 = pts[1];
-                    int result2t = Point.intersect(
-                                P_las-T1, P_las+T1,
-                                P_nxt+T31, P_cur+T2, //knife2_a
-                                ref PT2, pts);
-                    pt2 = pts[1];
+                    int result1t, result2t;
+                    {
+                        float[] pts = new float[2];
+                        result1t = Point.intersect(
+                                    P_nxt-T31, P_nxt+T31,
+                                    P_las+T1, P_cur+T21, //knife1_a
+                                    ref PT1, pts); //core
+                        pt1 = pts[1];
+                        result2t = Point.intersect(
+                                    P_las-T1, P_las+T1,
+                                    P_nxt+T31, P_cur+T2, //knife2_a
+                                    ref PT2, pts);
+                        pt2 = pts[1];
+                    }
                     bool is_result1t = result1t == 1;
                     bool is_result2t = result2t == 1;
 
@@ -853,19 +881,13 @@ namespace Vaser
                         SL[i].pt = is_result1t? pt1:pt2;
                     }
 
-                    //make joint
-                    SL[i].djoint = opt.joint;
-                    if (opt.joint == polyline_opt.PLJ_miter)
-                        if (cos_tho >= cos_cri_angle)
-                            SL[i].djoint=polyline_opt.PLJ_bevel;
-
                     if (d180_degree | result3 == 0)
                     {   //to solve visual bugs 3 and 1.1
                         SL[i].vP=SL[i].T;
                         SL[i].T1.follow_signs(SL[i].T);
                         SL[i].djoint=polyline_opt.PLJ_miter;
                     }
-                } //2nd to 2nd last point
+                }
             }
 
             {
