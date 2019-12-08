@@ -5,19 +5,16 @@ namespace Vaser
 {
     public class Polyline
     {
-        const float cri_core_adapt = 0.0001f;
+        private VertexArrayHolder holder;
 
         public class polyline_opt
         {
-            public float world_to_screen_ratio = 1.0f;
-
-            //const tessellator_opt* tess;
-            public char joint; //use PLJ_xx
-            public char cap;   //use PLC_xx
-            public bool feather;
-            public float feathering;
-            public bool no_feather_at_cap;
-            public bool no_feather_at_core;
+            public char joint = PLJ_miter;
+            public char cap = PLC_butt;
+            public bool feather = false;
+            public float feathering = 0.0f;
+            public bool no_feather_at_cap = false;
+            public bool no_feather_at_core = false;
 
             //for polyline_opt.joint
             public const char PLJ_miter = (char)0; //default
@@ -32,22 +29,139 @@ namespace Vaser
             public const char PLC_first = (char)10;
             public const char PLC_last  = (char)20;
             public const char PLC_none  = (char)30;
+
+            public float world_to_screen_ratio = 1.0f;
+            public bool triangulation = false;
         }
 
-        public struct st_polyline
-        // to hold info for AnchorLate() to perform triangluation
+        public Polyline(
+            List<Point> P, //pointer to array of point of a polyline
+            List<Color> C, //array of color
+            List<float> W, //array of weight
+            polyline_opt opt) : //options
+                this (P, C, W, opt, null)
+        {
+            // empty
+        }
+
+        private Polyline(
+            List<Point> P,
+            List<Color> C,
+            List<float> W,
+            polyline_opt opt,
+            polyline_inopt inopt)
+        {
+            int length = P.Count;
+            if (opt == null) {
+                opt = new polyline_opt();
+            }
+            if (inopt == null) {
+                inopt = new polyline_inopt();
+            }
+
+            /* if( opt.fallback)
+            {
+                backend::polyline(P,C[0],W[0],length,0);
+                return;
+            } */
+
+            if (opt.cap >= 10)
+            {
+                char dec = (char) ((int) opt.cap - ((int) opt.cap % 10));
+                if (dec==polyline_opt.PLC_first || dec==polyline_opt.PLC_none) {
+                    inopt.no_cap_last=true;
+                }
+                if (dec==polyline_opt.PLC_last || dec==polyline_opt.PLC_none) {
+                    inopt.no_cap_first=true;
+                }
+                opt.cap -= dec;
+            }
+
+            int A=0, B=0;
+            bool on=false;
+            for (int i=1; i<length-1; i++)
+            {
+                Point V1 = P[i]-P[i-1];
+                Point V2 = P[i+1]-P[i];
+                float len=0;
+                if (inopt.segment_length != null) {
+                    V1 *= 1/inopt.segment_length[i];
+                    V2 *= 1/inopt.segment_length[i+1];
+                    len += (inopt.segment_length[i]+inopt.segment_length[i+1])*0.5f;
+                } else {
+                    len += V1.normalize()*0.5f;
+                    len += V2.normalize()*0.5f;
+                }
+                float costho = V1.x*V2.x+V1.y*V2.y;
+                const float m_pi = (float) System.Math.PI;
+                //float angle = acos(costho)*180/m_pi;
+                float cos_a = (float) System.Math.Cos(15*m_pi/180);
+                float cos_b = (float) System.Math.Cos(10*m_pi/180);
+                float cos_c = (float) System.Math.Cos(25*m_pi/180);
+                float weight = W[inopt.const_weight ? 0 : i];
+                bool approx = false;
+                if ((weight<7 && costho>cos_a) ||
+                    (costho>cos_b) || //when the angle difference at an anchor is smaller than a critical degree, do polyline approximation
+                    (len<weight && costho>cos_c)) { //when vector length is smaller than weight, do approximation
+                    approx = true;
+                }
+                if (approx && !on) {
+                    A=i; if(A==1) A=0;
+                    on=true;
+                    if (A>1) {
+                        polyline_range(P,C,W,opt,inopt,B,A,false);
+                    }
+                } else if(!approx && on) {
+                    B=i;
+                    on=false;
+                    polyline_range(P,C,W,opt,inopt,A,B,true);
+                }
+            }
+            if (on && B<length-1) {
+                B=length-1;
+                polyline_range(P,C,W,opt,inopt,A,B,true);
+            } else if (!on && A<length-1) {
+                A=length-1;
+                polyline_range(P,C,W,opt,inopt,B,A,false);
+            }
+            holder = inopt.holder;
+            inopt.holder = null;
+        }
+
+        public Mesh GetMesh()
+        {
+            Mesh mesh = new Mesh();
+            mesh.SetVertices(holder.GetVertices());
+            mesh.SetUVs(0, holder.GetUVs());
+            mesh.SetColors(holder.GetColors());
+            mesh.SetTriangles(holder.GetTriangles(), 0);
+            return mesh;
+        }
+
+        private class polyline_inopt
+        {
+            public bool const_color = false;
+            public bool const_weight = false;
+            public bool no_cap_first = false;
+            public bool no_cap_last = false;
+            public bool join_first = false;
+            public bool join_last = false;
+            public List<float> segment_length = null; // length of each segment; optional
+            public VertexArrayHolder holder = new VertexArrayHolder();
+        }
+
+        private struct st_polyline
+        // to hold info for AnchorLate() to perform triangulation
         {
             //for all joints
-            public Point vP; //vector to intersection point
-            public Point vR; //fading vector at sharp end
-                //all vP,vR are outward
+            public Point vP; //vector to intersection point; outward
 
             //for djoint==PLJ_bevel
             public Point T; //core thickness of a line
             public Point R; //fading edge of a line
             public Point bR; //out stepping vector, same direction as cap
-            public Point T1,R1; //alternate vectors, same direction as T21
-                //all T,R,T1,R1 are outward
+            public Point T1; //alternate vectors, same direction as T21
+            // all T,R,T1 are outward
 
             //for djoint==PLJ_round
             public float t,r;
@@ -56,15 +170,14 @@ namespace Vaser
             public bool degenT; //core degenerated
             public bool degenR; //fade degenerated
             public bool pre_full; //draw the preceding segment in full
-            public Point PT,PR;
+            public Point PT;
             public float pt; //parameter at intersection
-            public bool R_full_degen;
 
             public char djoint; //determined joint
-                    // e.g. originally a joint is PLJ_miter. but it is smaller than critical angle, should then set djoint to PLJ_bevel
+            // e.g. originally a joint is PLJ_miter. but it is smaller than critical angle, should then set djoint to PLJ_bevel
         }
 
-        public class st_anchor
+        private class st_anchor
         // to hold memory for the working of anchor()
         {
             public Point[] P = new Point[3]; //point
@@ -75,6 +188,225 @@ namespace Vaser
             public Point cap_end = new Point();
             public st_polyline[] SL = new st_polyline[3];
             public VertexArrayHolder vah = new VertexArrayHolder();
+        }
+
+        private static void poly_point_inter(List<Point> P, List<Color> C, List<float> W, polyline_inopt inopt,
+                ref Point p, ref Color c, ref float w, int at, float t)
+        {
+            Color color(int I) { return C[inopt != null && inopt.const_color ? 0: I]; }
+            float weight(int I) { return W[inopt != null && inopt.const_weight ? 0: I]; }
+
+            if (t == 0.0) {
+                p = P[at];
+                c = color(at);
+                w = weight(at);
+            } else if (t == 1.0) {
+                p = P[at+1];
+                c = color(at+1);
+                w = weight(at+1);
+            } else {
+                p = (P[at]+P[at+1]) * t;
+                c = ColorBetween(color(at),color(at+1), t);
+                w = (weight(at)+weight(at+1)) * t;
+            }
+        }
+
+        private static void polyline_approx(
+            List<Point> P,
+            List<Color> C,
+            List<float> W,
+            polyline_opt opt,
+            polyline_inopt inopt,
+            int from,
+            int to)
+        {
+            if (to-from+1 < 2) {
+                return;
+            }
+            bool cap_first = !(inopt != null && inopt.no_cap_first);
+            bool cap_last  = !(inopt != null && inopt.no_cap_last);
+
+            VertexArrayHolder vcore = new VertexArrayHolder(); //curve core
+            vcore.SetGlDrawMode(VertexArrayHolder.GL_TRIANGLE_STRIP);
+
+            Color color(int I) { return C[inopt != null && inopt.const_color ? from: I]; }
+            float weight(int I) { return W[inopt != null && inopt.const_weight ? from: I]; }
+
+            void poly_step(int i, Point pp, float ww, Color cc)
+            {
+                float t=0,r=0;
+                determine_t_r(weight(i), ref t, ref r, opt.world_to_screen_ratio);
+                float rr = (t+r) / r;
+                if (opt.feather && !opt.no_feather_at_core) {
+                    r *= opt.feathering;
+                }
+                Point V = P[i]-P[i-1];
+                V.perpen();
+                V.normalize();
+                V *= (t+r);
+                vcore.Push(pp+V, color(i), rr);
+                vcore.Push(pp-V, color(i), rr);
+            }
+
+            for (int i=from+1; i<to; i++)
+            {
+                poly_step(i, P[i], weight(i), color(i));
+            }
+            Point P_las=new Point(), P_fir=new Point();
+            Color C_las=new Color(), C_fir=new Color();
+            float W_las=0, W_fir=0;
+            poly_point_inter(P, C, W, inopt, ref P_las, ref C_las, ref W_las, to-1, 0.5f);
+            poly_step(to, P_las, W_las, C_las);
+
+            st_anchor SA = new st_anchor();
+            if (cap_first)
+            {
+                poly_point_inter(P, C, W, inopt, ref P_fir, ref C_fir, ref W_fir, from, inopt != null && inopt.join_first ? 0.5f : 0.0f);
+                SA.P[0] = P_fir;
+                SA.P[1] = P[from+1];
+                SA.C[0] = C_fir;
+                SA.C[1] = color(from+1);
+                SA.W[0] = W_fir;
+                SA.W[1] = weight(from+1);
+                Segment(SA, opt, cap_first, false, true);
+            }
+            if (!(inopt != null && inopt.join_last) && cap_last)
+            {
+                SA.P[0] = P_las;
+                SA.P[1] = P[to];
+                SA.C[0] = C_las;
+                SA.C[1] = color(to);
+                SA.W[0] = W_las;
+                SA.W[1] = weight(to);
+                Segment(SA, opt, false, cap_last, true);
+            }
+
+            inopt.holder.Push(vcore);
+            inopt.holder.Push(SA.vah);
+
+            if (opt.triangulation) {
+                DrawTriangles(vcore, inopt.holder);
+                DrawTriangles(SA.vah, inopt.holder);
+            }
+        }
+
+        private static void polyline_exact(
+            List<Point> P,
+            List<Color> C,
+            List<float> W,
+            polyline_opt opt,
+            polyline_inopt inopt,
+            int from,
+            int to)
+        {
+            bool cap_first = !(inopt != null && inopt.no_cap_first);
+            bool cap_last  = !(inopt != null && inopt.no_cap_last);
+            bool join_first = inopt != null && inopt.join_first;
+            bool join_last = inopt != null && inopt.join_last;
+
+            Color color(int I) { return C[inopt != null && inopt.const_color ? from: I]; }
+            float weight(int I) { return W[inopt != null && inopt.const_weight ? from: I]; }
+
+            Point mid_l=new Point(), mid_n=new Point(); //the last and the next mid point
+            Color c_l=new Color(), c_n=new Color();
+            float w_l=0, w_n=0;
+
+            //init for the first anchor
+            poly_point_inter(P, C, W, inopt, ref mid_l, ref c_l, ref w_l, from, join_first ? 0.5f : 0);
+
+            st_anchor SA = new st_anchor();
+            if (to-from+1 == 2) {
+                SA.P[0] = P[from];
+                SA.P[1] = P[from+1];
+                SA.C[0] = color(from);
+                SA.C[1] = color(from+1);
+                SA.W[0] = weight(from);
+                SA.W[1] = weight(from+1);
+                Segment(SA, opt, cap_first, cap_last, true);
+            } else {
+                for (int i=from+1; i<to; i++)
+                {
+                    if (i == to-1 && !join_last) {
+                        poly_point_inter(P, C, W, inopt, ref mid_n, ref c_n, ref w_n, i, 1.0f);
+                    } else {
+                        poly_point_inter(P, C, W, inopt, ref mid_n, ref c_n, ref w_n, i, 0.5f);
+                    }
+
+                    SA.P[0]=mid_l; SA.C[0]=c_l;  SA.W[0]=w_l;
+                    SA.P[2]=mid_n; SA.C[2]=c_n;  SA.W[2]=w_n;
+
+                    SA.P[1]=P[i];
+                    SA.C[1]=color(i);
+                    SA.W[1]=weight(i);
+
+                    Anchor(SA, opt, i == 1 && cap_first, i == to-1 && cap_last);
+
+                    mid_l = mid_n;
+                    c_l = c_n;
+                    w_l = w_n;
+                }
+            }
+
+            inopt.holder.Push(SA.vah);
+            if (opt.triangulation) {
+                DrawTriangles(SA.vah, inopt.holder);
+            }
+        }
+
+        private static void polyline_range(
+            List<Point> P,
+            List<Color> C,
+            List<float> W,
+            polyline_opt opt,
+            polyline_inopt inopt,
+            int from, int to,
+            bool approx)
+        {
+            int length = P.Count;
+            if (inopt == null) {
+                inopt = new polyline_inopt();
+            }
+            if (from>0) {
+                from-=1;
+            }
+
+            inopt.join_first = from!=0;
+            inopt.join_last = to!=(length-1);
+            inopt.no_cap_first = inopt.no_cap_first || inopt.join_first;
+            inopt.no_cap_last = inopt.no_cap_last || inopt.join_last;
+
+            if (approx) {
+                polyline_approx(P, C, W, opt, inopt, from, to);
+            } else {
+                polyline_exact(P, C, W, opt, inopt, from, to);
+            }
+        }
+
+        private static void DrawTriangles(VertexArrayHolder triangles, VertexArrayHolder holder)
+        {
+            Color col = new Color(1, 0, 0, 0.5f);
+            if (triangles.glmode == VertexArrayHolder.GL_TRIANGLES) {
+                for (int i=0; i<triangles.GetCount(); i++)
+                {
+                    List<Point> P = new List<Point>();
+                    P.Add(triangles.Get(i)); i+=1;
+                    P.Add(triangles.Get(i)); i+=1;
+                    P.Add(triangles.Get(i));
+                    P.Add(P[0]);
+                    //Polyline polyline = new Polyline(P, col, 1, null);
+                    //holder.Push(polyline.holder);
+                }
+            } else if (triangles.glmode == VertexArrayHolder.GL_TRIANGLE_STRIP) {
+                for (int i=2; i<triangles.GetCount(); i++)
+                {
+                    List<Point> P = new List<Point>();
+                    P.Add(triangles.Get(i-2));
+                    P.Add(triangles.Get(i));
+                    P.Add(triangles.Get(i-1));
+                    //Polyline polyline = new Polyline(P, col, 1, null);
+                    //holder.Push(polyline.holder);
+                }
+            }
         }
 
         private static void determine_t_r(float w, ref float t, ref float R, float scale)
@@ -131,7 +463,7 @@ namespace Vaser
             R = DP*r;
         }
 
-        public static void Segment(st_anchor SA, polyline_opt opt, bool cap_first, bool cap_last, bool core)
+        private static void Segment(st_anchor SA, polyline_opt opt, bool cap_first, bool cap_last, bool core)
         {
             float[] weight = SA.W;
 
@@ -214,7 +546,7 @@ namespace Vaser
             SegmentLate(opt, P, C, SL, SA.vah, cap_start, cap_end, core);
         }
 
-        public static void SegmentLate(
+        private static void SegmentLate(
                 polyline_opt opt,
                 Point[] P, Color[] C, st_polyline[] SL,
                 VertexArrayHolder tris,
@@ -321,7 +653,7 @@ namespace Vaser
             }
         }
 
-        public static void Anchor(st_anchor SA, polyline_opt opt, bool cap_first, bool cap_last)
+        private static void Anchor(st_anchor SA, polyline_opt opt, bool cap_first, bool cap_last)
         {
             Point[] P = SA.P;
             Color[] C = SA.C;
@@ -561,11 +893,11 @@ namespace Vaser
             }
         } //Anchor
 
-        public static void AnchorLate(
-                polyline_opt opt,
-                Point[] P, Color[] C, st_polyline[] SL,
-                VertexArrayHolder tris,
-                Point cap1, Point cap2)
+        private static void AnchorLate(
+            polyline_opt opt,
+            Point[] P, Color[] C, st_polyline[] SL,
+            VertexArrayHolder tris,
+            Point cap1, Point cap2)
         {
             Point P_0 = P[0], P_1 = P[1], P_2 = P[2];
             if (SL[0].djoint==polyline_opt.PLC_butt || SL[0].djoint==polyline_opt.PLC_square)
@@ -645,10 +977,10 @@ namespace Vaser
         } //AnchorLate
 
         private static void vectors_to_arc(
-                VertexArrayHolder hold,
-                Point P, Color C, Color C2,
-                Point PA, Point PB, float dangle, float r, float r2, bool ignor_ends,
-                Point apparent_P, Point hint, float rr, bool inner_fade)
+            VertexArrayHolder hold,
+            Point P, Color C, Color C2,
+            Point PA, Point PB, float dangle, float r, float r2, bool ignor_ends,
+            Point apparent_P, Point hint, float rr, bool inner_fade)
         {
             // triangulate an inner arc between vectors A and B,
             // A and B are position vectors relative to P
@@ -799,6 +1131,21 @@ namespace Vaser
             //interpret P0 to P3 as triangle strip
             tris.Push3(P1, P3, P2, C1, C3, C2, r1, r3, r2);
             tris.Push3(P2, P3, P4, C2, C3, C4, r2, r3, r4);
+        }
+
+        private static Color ColorBetween(Color A, Color B, float t=0.5f)
+        {
+            if (t<0.0f) t = 0.0f;
+            if (t>1.0f) t = 1.0f;
+
+            float kt = 1.0f - t;
+            return new Color
+            (
+                A.r *kt + B.r *t,
+                A.g *kt + B.g *t,
+                A.b *kt + B.b *t,
+                A.a *kt + B.a *t
+            );
         }
     }
 }

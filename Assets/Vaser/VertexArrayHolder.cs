@@ -13,11 +13,16 @@ namespace Vaser
         public const int GL_TRIANGLE_STRIP = 6;
         public const int GL_TRIANGLE_FAN = 7;
 
-        public int glmode { get; set; } = GL_TRIANGLES; //drawing mode in opengl
+        public int glmode = GL_TRIANGLES; //drawing mode in opengl
         private bool jumping = false;
         private List<Vector3> vert = new List<Vector3>();
         private List<Color> color = new List<Color>();
         private List<float> fade = new List<float>();
+
+        public int GetCount()
+        {
+            return vert.Count;
+        }
 
         public void SetGlDrawMode(int gl_draw_mode)
         {
@@ -74,6 +79,7 @@ namespace Vaser
             {
                 vert.AddRange(hold.vert);
                 color.AddRange(hold.color);
+                fade.AddRange(hold.fade);
             }
             else if (glmode == GL_TRIANGLES &&
                 hold.glmode == GL_TRIANGLE_STRIP)
