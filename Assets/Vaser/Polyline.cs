@@ -370,7 +370,7 @@ namespace Vaser {
         private static void DrawTriangles(VertexArrayHolder triangles, VertexArrayHolder holder, float scale) {
             polyline_opt opt = new polyline_opt();
             opt.cap = polyline_opt.PLC_none;
-            //opt.joint = polyline_opt.PLJ_bevel;
+            opt.joint = polyline_opt.PLJ_bevel;
             opt.world_to_screen_ratio = scale;
             if (triangles.glmode == VertexArrayHolder.GL_TRIANGLES) {
                 for (int i = 0; i < triangles.GetCount(); i++) {
@@ -555,7 +555,6 @@ namespace Vaser {
             Point P1, P2, P3, P4; //core
             Point P1c, P2c, P3c, P4c; //cap
             Point P1r, P2r, P3r, P4r; //fade
-            float rr = (SL[0].t + SL[0].r) / SL[0].r;
 
             P1 = P_0 + SL[0].T + SL[0].R;
             P1r = P1 - SL[0].R;
@@ -569,6 +568,7 @@ namespace Vaser {
             P4 = P_1 - SL[1].T - SL[1].R;
             P4r = P4 + SL[1].R;
             P4c = P4 + cap2;
+            float rr = System.Math.Max((SL[0].t + SL[0].r) / SL[0].r, (SL[1].t + SL[1].r) / SL[1].r);
 
             //core
             if (core) {
@@ -690,7 +690,8 @@ namespace Vaser {
 
                 SL[i].djoint = opt.cap;
                 SL[i].T = T2;
-                SL[i].t = (float) t;
+                SL[i].t = t;
+                SL[i].r = r;
                 SL[i].degenT = false;
 
                 SL[i + 1].T1 = T31;
@@ -750,8 +751,7 @@ namespace Vaser {
                     SL[i + 1].T1 = T31;
                 }
 
-                { //2nd point
-
+                {   //2nd point
                     //find the angle between the 2 line segments
                     Point ln1 = new Point(), ln2 = new Point(), V = new Point();
                     ln1 = P_cur - P_las;
@@ -777,7 +777,7 @@ namespace Vaser {
                     }
 
                     SL[i].djoint = opt.joint;
-                    if (opt.joint == polyline_opt.PLJ_miter) {
+                    if (SL[i].djoint == polyline_opt.PLJ_miter) {
                         if (System.Math.Abs(cos_tho) >= cos_cri_angle) {
                             SL[i].djoint = polyline_opt.PLJ_bevel;
                         }
@@ -799,8 +799,10 @@ namespace Vaser {
                         if (result3 != 0) {
                             vP = interP - P_cur;
                             SL[i].vP = vP;
-                            if (pts[0] > 2 || pts[1] > 2) {
-                                SL[i].djoint = polyline_opt.PLJ_bevel;
+                            if (SL[i].djoint == polyline_opt.PLJ_miter) {
+                                if (pts[0] > 2 || pts[1] > 2 || vP.length() > 2 * SL[i].t) {
+                                    SL[i].djoint = polyline_opt.PLJ_bevel;
+                                }
                             }
                         } else {
                             SL[i].vP = SL[i].T;
@@ -856,7 +858,8 @@ namespace Vaser {
 
                 SL[i].djoint = opt.cap;
                 SL[i].T = T2;
-                SL[i].t = (float) t;
+                SL[i].t = t;
+                SL[i].r = r;
                 SL[i].degenT = false;
             }
 

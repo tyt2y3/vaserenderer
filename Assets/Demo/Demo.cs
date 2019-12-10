@@ -7,11 +7,11 @@ public class Demo : MonoBehaviour {
     private void Start() {
 
         Polyline.polyline_opt opt = new Polyline.polyline_opt();
-        opt.feather = true;
+        opt.feather = false;
         opt.feathering = 15.0f;
         opt.joint = Polyline.polyline_opt.PLJ_round;
         opt.cap = Polyline.polyline_opt.PLC_round;
-        opt.triangulation = true;
+        opt.triangulation = false;
         {
             Camera cam = Camera.main;
             Vector3 a = cam.WorldToScreenPoint(new Vector3(0,0,0));
