@@ -14,8 +14,8 @@ void gradient_apply(const gradient* gradp, Color* C, double* W, const double* L,
 	const gradient_stop* stop = grad.stops;
 
 	//current stops
-	short las_c=-1, las_a=-1, las_w=-1, //last
-		cur_c=-1, cur_a=-1, cur_w=-1, //current
+	int las_c=0, las_a=0, las_w=0, //last
+		cur_c=0, cur_a=0, cur_w=0, //current
 		nex_c=0, nex_a=0, nex_w=0; //next
 	double length_along=0.0;
 	if( grad.length>1)
