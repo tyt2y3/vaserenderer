@@ -32,21 +32,30 @@ namespace Vaser {
         }
 
         public Polyline(
-            List <Point> P, List <Color> C, List <float> W, polyline_opt opt)
+            List<Point> P, List<Color> C, List<float> W, polyline_opt opt)
             : this(P, C, W, opt, null) {
             // empty
         }
 
         public Polyline(
-            List <Point> P, Color C, float W, polyline_opt opt)
-            : this(P, new List <Color> { C }, new List <float> { W }, opt, new polyline_inopt {
+            List<Point> P, Color C, float W, polyline_opt opt)
+            : this(P, new List<Color> { C }, new List<float> { W }, opt, new polyline_inopt {
                 const_color = true, const_weight = true,
             }) {
             // empty
         }
 
+        public Mesh GetMesh() {
+            Mesh mesh = new Mesh();
+            mesh.SetVertices(holder.GetVertices());
+            mesh.SetUVs(0, holder.GetUVs());
+            mesh.SetColors(holder.GetColors());
+            mesh.SetTriangles(holder.GetTriangles(), 0);
+            return mesh;
+        }
+
         private Polyline(
-            List <Point> P, List <Color> C, List <float> W,
+            List<Point> P, List<Color> C, List<float> W,
             polyline_opt opt, polyline_inopt inopt) {
             int length = P.Count;
             if (opt == null) {
@@ -123,15 +132,6 @@ namespace Vaser {
             inopt.holder = null;
         }
 
-        public Mesh GetMesh() {
-            Mesh mesh = new Mesh();
-            mesh.SetVertices(holder.GetVertices());
-            mesh.SetUVs(0, holder.GetUVs());
-            mesh.SetColors(holder.GetColors());
-            mesh.SetTriangles(holder.GetTriangles(), 0);
-            return mesh;
-        }
-
         private class polyline_inopt {
             public bool const_color = false;
             public bool const_weight = false;
@@ -139,7 +139,7 @@ namespace Vaser {
             public bool no_cap_last = false;
             public bool join_first = false;
             public bool join_last = false;
-            public List <float> segment_length = null; // length of each segment; optional
+            public List<float> segment_length = null; // length of each segment; optional
             public VertexArrayHolder holder = new VertexArrayHolder();
         }
 
@@ -184,7 +184,7 @@ namespace Vaser {
         }
 
         private static void poly_point_inter(
-            List <Point> P, List <Color> C, List <float> W,
+            List<Point> P, List<Color> C, List<float> W,
             polyline_inopt inopt, ref Point p, ref Color c, ref float w, int at, float t) {
             Color color(int I) {
                 return C[inopt != null && inopt.const_color ? 0 : I];
@@ -209,7 +209,7 @@ namespace Vaser {
         }
 
         private static void polyline_approx(
-            List <Point> P, List <Color> C, List <float> W,
+            List<Point> P, List<Color> C, List<float> W,
             polyline_opt opt, polyline_inopt inopt, int from, int to) {
             if (to - from + 1 < 2) {
                 return;
@@ -281,7 +281,7 @@ namespace Vaser {
         }
 
         private static void polyline_exact(
-            List <Point> P, List <Color> C, List <float> W,
+            List<Point> P, List<Color> C, List<float> W,
             polyline_opt opt, polyline_inopt inopt, int from, int to) {
             bool cap_first = !(inopt != null && inopt.no_cap_first);
             bool cap_last = !(inopt != null && inopt.no_cap_last);
@@ -345,7 +345,7 @@ namespace Vaser {
         }
 
         private static void polyline_range(
-            List <Point> P, List <Color> C, List <float> W,
+            List<Point> P, List<Color> C, List<float> W,
             polyline_opt opt, polyline_inopt inopt, int from, int to, bool approx) {
             int length = P.Count;
             if (inopt == null) {
@@ -374,7 +374,7 @@ namespace Vaser {
             opt.world_to_screen_ratio = scale;
             if (triangles.glmode == VertexArrayHolder.GL_TRIANGLES) {
                 for (int i = 0; i < triangles.GetCount(); i++) {
-                    List <Point> P = new List <Point> ();
+                    List<Point> P = new List<Point> ();
                     P.Add(triangles.Get(i));
                     i += 1;
                     P.Add(triangles.Get(i));
@@ -386,7 +386,7 @@ namespace Vaser {
                 }
             } else if (triangles.glmode == VertexArrayHolder.GL_TRIANGLE_STRIP) {
                 for (int i = 2; i < triangles.GetCount(); i++) {
-                    List <Point> P = new List <Point> ();
+                    List<Point> P = new List<Point> ();
                     P.Add(triangles.Get(i - 2));
                     P.Add(triangles.Get(i));
                     P.Add(triangles.Get(i - 1));
