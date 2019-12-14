@@ -1,3 +1,5 @@
+> This project was started nearly 10 years ago. While the original idea was neat, the implementation was perhaps obscure and archaic. It is now being reimplemented in C# for Unity under [tyt2y3/vaser-unity](https://github.com/tyt2y3/vaser-unity).
+
 <body>
 	<div class='vaser_wrap'>
 		<div class='article_name'>
