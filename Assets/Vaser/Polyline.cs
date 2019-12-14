@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 
 namespace Vaser {
+
     public class Polyline {
         private VertexArrayHolder holder;
 
@@ -12,23 +13,22 @@ namespace Vaser {
             public float feathering = 0.0f;
             public bool no_feather_at_cap = false;
             public bool no_feather_at_core = false;
+            public float world_to_screen_ratio = 1.0f;
+            public bool triangulation = false;
 
             //for polyline_opt.joint
             public const char PLJ_miter = (char) 0; //default
             public const char PLJ_bevel = (char) 1;
             public const char PLJ_round = (char) 2;
             //for polyline_opt.cap
-            public const char PLC_butt = (char) 0; //default
-            public const char PLC_round = (char) 1;
+            public const char PLC_butt   = (char) 0; //default
+            public const char PLC_round  = (char) 1;
             public const char PLC_square = (char) 2;
-            public const char PLC_rect = (char) 3;
-            public const char PLC_both = (char) 0; //default
-            public const char PLC_first = (char) 10;
-            public const char PLC_last = (char) 20;
-            public const char PLC_none = (char) 30;
-
-            public float world_to_screen_ratio = 1.0f;
-            public bool triangulation = false;
+            public const char PLC_rect   = (char) 3;
+            public const char PLC_both   = (char) 0; //default
+            public const char PLC_first  = (char) 10;
+            public const char PLC_last   = (char) 20;
+            public const char PLC_none   = (char) 30;
         }
 
         public Polyline(
@@ -203,7 +203,7 @@ namespace Vaser {
                 w = weight(at + 1);
             } else {
                 p = (P[at] + P[at + 1]) * t;
-                c = ColorBetween(color(at), color(at + 1), t);
+                c = Gradient.ColorBetween(color(at), color(at + 1), t);
                 w = (weight(at) + weight(at + 1)) * t;
             }
         }
@@ -1091,19 +1091,6 @@ namespace Vaser {
             //interpret P0 to P3 as triangle strip
             tris.Push3(P1, P3, P2, C1, C3, C2, r1, r3, r2);
             tris.Push3(P2, P3, P4, C2, C3, C4, r2, r3, r4);
-        }
-
-        private static Color ColorBetween(Color A, Color B, float t = 0.5f) {
-            if (t < 0.0f) t = 0.0f;
-            if (t > 1.0f) t = 1.0f;
-
-            float kt = 1.0f - t;
-            return new Color(
-                A.r * kt + B.r * t,
-                A.g * kt + B.g * t,
-                A.b * kt + B.b * t,
-                A.a * kt + B.a * t
-            );
         }
     }
 }
