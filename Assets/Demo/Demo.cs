@@ -7,7 +7,7 @@ public class Demo : MonoBehaviour {
     private void Start() {
 
         Polyline.Opt opt = new Polyline.Opt();
-        opt.feather = true;
+        opt.feather = false;
         opt.feathering = 15.0f;
         opt.joint = Polyline.Opt.PLJ_round;
         opt.cap = Polyline.Opt.PLC_round;
@@ -52,10 +52,13 @@ public class Demo : MonoBehaviour {
                 new Vaser.Gradient (
                     new List<Vaser.Gradient.Stop> {
                         new Vaser.Gradient.Stop(0.0f,  Color.red),
-                        new Vaser.Gradient.Stop(0.0f,  0.1f),
+                        new Vaser.Gradient.Stop(0.0f,  0.01f),
                         new Vaser.Gradient.Stop(0.25f, Color.green),
+                        new Vaser.Gradient.Stop(0.25f, 0.15f),
                         new Vaser.Gradient.Stop(0.5f,  Color.blue),
+                        new Vaser.Gradient.Stop(0.5f,  0.15f),
                         new Vaser.Gradient.Stop(1.0f,  Color.red),
+                        new Vaser.Gradient.Stop(1.0f,  0.01f),
                     }
                 ),
                 new Polybezier.Opt {
