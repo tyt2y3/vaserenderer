@@ -6,11 +6,11 @@ public class Demo : MonoBehaviour {
 
     private void Start() {
 
-        Polyline.polyline_opt opt = new Polyline.polyline_opt();
+        Polyline.Opt opt = new Polyline.Opt();
         opt.feather = false;
         opt.feathering = 15.0f;
-        opt.joint = Polyline.polyline_opt.PLJ_round;
-        opt.cap = Polyline.polyline_opt.PLC_round;
+        opt.joint = Polyline.Opt.PLJ_round;
+        opt.cap = Polyline.Opt.PLC_round;
         opt.triangulation = false;
         {
             Camera cam = Camera.main;

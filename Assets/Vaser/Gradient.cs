@@ -1,37 +1,73 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-namespace Vaser {
-
-    public class Gradient {
+namespace Vaser
+{
+    public class Gradient
+    {
         public char unit = GD_ratio;
-        public List<Stop> stops = new List<Stop> (); //array must be sorted in ascending order of t
+        public List<Stop> stops; //array must be sorted in ascending order of t
 
         public const char GD_ratio  = (char) 0;
         public const char GD_length = (char) 1;
 
         public const char GS_none   = (char) 0;
         public const char GS_rgba   = (char) 1;
-        public const char GS_rgb    = (char) 2; //rgb only
+        public const char GS_rgb    = (char) 2;
         public const char GS_alpha  = (char) 3;
         public const char GS_weight = (char) 4;
 
-        public struct Stop {
-            public float t; //position
-            public char type; //GS_xx
-            public Color color;
-            public float weight;
+        public Gradient()
+        {
+            stops = new List<Stop> ();
         }
 
-        public void Apply(List<Color> C, List<float> W, List<float> L, int limit, float pathLength) {
+        public Gradient(List<Stop> stopss)
+        {
+            stops = stopss;
+        }
+
+        public Gradient(Color cc, float ww)
+        {
+            stops = new List<Stop> ();
+            stops.Add(new Stop(0, cc));
+            stops.Add(new Stop(0, ww));
+        }
+
+        public struct Stop
+        {
+            public float t; //position
+            public char type;
+            public Color color;
+            public float weight;
+
+            public Stop(float tt, Color cc)
+            {
+                t = tt;
+                type = GS_rgba;
+                color = cc;
+                weight = 0;
+            }
+
+            public Stop(float tt, float ww)
+            {
+                t = tt;
+                type = GS_weight;
+                color = new Color(0,0,0,0);
+                weight = ww;
+            }
+        }
+
+        public void Apply(List<Color> C, List<float> W, List<float> L, int limit, float pathLength)
+        {
             if (stops.Count == 0) {
                 return;
             }
 
             //current stops
-            int las_c = -1, las_a = -1, las_w = -1, //last
-                cur_c = -1, cur_a = -1, cur_w = -1, //current
-                nex_c =  0, nex_a =  0, nex_w =  0; //next
+            int las_c = 0, las_a = 0, las_w = 0, //last
+                cur_c = 0, cur_a = 0, cur_w = 0, //current
+                nex_c = 0, nex_a = 0, nex_w = 0; //next
 
             float lengthAlong = 0.0f;
 
@@ -132,7 +168,8 @@ namespace Vaser {
             }
         }
 
-        public static Color ColorBetween(Color A, Color B, float t) {
+        public static Color ColorBetween(Color A, Color B, float t)
+        {
             if (t < 0.0f) t = 0.0f;
             if (t > 1.0f) t = 1.0f;
 
