@@ -111,8 +111,8 @@ namespace Vaser
                     V2 *= 1 / inopt.segmentLength[i + 1];
                     len += (inopt.segmentLength[i] + inopt.segmentLength[i + 1]) * 0.5f;
                 } else {
-                    len += Vec2Ext.normalize(ref V1) * 0.5f;
-                    len += Vec2Ext.normalize(ref V2) * 0.5f;
+                    len += Vec2Ext.Normalize(ref V1) * 0.5f;
+                    len += Vec2Ext.Normalize(ref V2) * 0.5f;
                 }
                 float costho = V1.x * V2.x + V1.y * V2.y;
                 const float m_pi = (float) System.Math.PI;
@@ -253,8 +253,8 @@ namespace Vaser
                 }
                 float rr = (t + r) / r;
                 Vector2 V = P[i] - P[i - 1];
-                Vec2Ext.perpen(ref V);
-                Vec2Ext.normalize(ref V);
+                Vec2Ext.Perpen(ref V);
+                Vec2Ext.Normalize(ref V);
                 V *= (t + r);
                 vcore.Push(pp - V, color(i), rr);
                 vcore.Push(pp + V, color(i), 0);
@@ -472,9 +472,9 @@ namespace Vaser
             tt = t;
             rr = r;
             Vector2 DP = P2 - P1;
-            dist = Vec2Ext.normalize(ref DP);
+            dist = Vec2Ext.Normalize(ref DP);
             C = DP * (1 / opt.worldToScreenRatio);
-            Vec2Ext.perpen(ref DP);
+            Vec2Ext.Perpen(ref DP);
             T = DP * t;
             R = DP * r;
         }
@@ -519,7 +519,7 @@ namespace Vaser
                         P[0] = P[0] - (bR * (t + r));
                     }
                     capStart = bR;
-                    Vec2Ext.opposite(ref capStart);
+                    Vec2Ext.Opposite(ref capStart);
                     if (opt.feather && !opt.noFeatherAtCap) {
                         capStart *= opt.feathering;
                     }
@@ -613,7 +613,7 @@ namespace Vaser
                 VertexArrayHolder cap = new VertexArrayHolder();
                 cap.SetGlDrawMode(VertexArrayHolder.GL_TRIANGLE_STRIP);
                 Vector2 cur_cap = j == 0 ? cap1: cap2;
-                if (cur_cap.is_zero()) {
+                if (cur_cap.IsZero()) {
                     continue;
                 }
 
@@ -672,7 +672,7 @@ namespace Vaser
             Color[] C = SA.C;
             float[] weight = SA.W;
             StPolyline[] SL = SA.SL;
-            if (Vec2Ext.signed_area(P[0], P[1], P[2]) > 0) {
+            if (Vec2Ext.SignedArea(P[0], P[1], P[2]) > 0) {
                 // rectify clockwise
                 P = new Vector2[3] { P[2], P[1], P[0] };
                 C = new Color[3] { C[2], C[1], C[0] };
@@ -714,7 +714,7 @@ namespace Vaser
                     if (opt.cap == Opt.PLCsquare) {
                         P[0] = P[0] - cap1 * (t + r);
                     }
-                    Vec2Ext.opposite(ref cap1);
+                    Vec2Ext.Opposite(ref cap1);
                     if (opt.feather && !opt.noFeatherAtCap) cap1 *= opt.feathering;
                     SA.capStart = cap1;
                 }
@@ -787,9 +787,9 @@ namespace Vaser
                     Vector2 ln1 = new Vector2(), ln2 = new Vector2(), V = new Vector2();
                     ln1 = P_cur - P_las;
                     ln2 = P_nxt - P_cur;
-                    Vec2Ext.normalize(ref ln1);
-                    Vec2Ext.normalize(ref ln2);
-                    Vec2Ext.dot(ln1, ln2, ref V);
+                    Vec2Ext.Normalize(ref ln1);
+                    Vec2Ext.Normalize(ref ln2);
+                    Vec2Ext.Dot(ln1, ln2, ref V);
                     float cos_tho = V.x - V.y;
                     bool zero_degree = System.Math.Abs(cos_tho - 1.0f) < 0.0000001f;
                     bool d180_degree = cos_tho < -1.0f + 0.0001f;
@@ -803,24 +803,24 @@ namespace Vaser
                         }
                     }
 
-                    Vec2Ext.anchor_outward(ref T1, P_cur, P_nxt);
-                    Vec2Ext.anchor_outward(ref T21, P_cur, P_nxt);
-                    Vec2Ext.follow_signs(ref SL[i].T1, T21);
-                    Vec2Ext.anchor_outward(ref T2, P_cur, P_las);
-                    Vec2Ext.follow_signs(ref SL[i].T, T2);
-                    Vec2Ext.anchor_outward(ref T31, P_cur, P_las);
+                    Vec2Ext.AnchorOutward(ref T1, P_cur, P_nxt);
+                    Vec2Ext.AnchorOutward(ref T21, P_cur, P_nxt);
+                    Vec2Ext.FollowSigns(ref SL[i].T1, T21);
+                    Vec2Ext.AnchorOutward(ref T2, P_cur, P_las);
+                    Vec2Ext.FollowSigns(ref SL[i].T, T2);
+                    Vec2Ext.AnchorOutward(ref T31, P_cur, P_las);
 
                     {   //must do intersection
                         Vector2 interP = new Vector2(), vP = new Vector2();
                         float[] pts = new float[2];
-                        result3 = Vec2Ext.intersect(
+                        result3 = Vec2Ext.Intersect(
                             P_las + T1, P_cur + T21, P_nxt + T31, P_cur + T2, ref interP, pts);
 
                         if (result3 != 0) {
                             vP = interP - P_cur;
                             SL[i].vP = vP;
                             if (SL[i].djoint == Opt.PLJmiter) {
-                                if (pts[0] > 2 || pts[1] > 2 || vP.length() > 2 * SL[i].t) {
+                                if (pts[0] > 2 || pts[1] > 2 || vP.Length() > 2 * SL[i].t) {
                                     SL[i].djoint = Opt.PLJbevel;
                                 }
                             }
@@ -842,10 +842,10 @@ namespace Vaser
                         return;
                     }
 
-                    Vec2Ext.opposite(ref T1);
-                    Vec2Ext.opposite(ref T21);
-                    Vec2Ext.opposite(ref T2);
-                    Vec2Ext.opposite(ref T31);
+                    Vec2Ext.Opposite(ref T1);
+                    Vec2Ext.Opposite(ref T21);
+                    Vec2Ext.Opposite(ref T2);
+                    Vec2Ext.Opposite(ref T31);
 
                     //make intersections
                     Vector2 PT1 = new Vector2(), PT2 = new Vector2();
@@ -853,11 +853,11 @@ namespace Vaser
                     int result1t, result2t;
                     {
                         float[] pts = new float[2];
-                        result1t = Vec2Ext.intersect(
+                        result1t = Vec2Ext.Intersect(
                         P_nxt - T31, P_nxt + T31, P_las + T1, P_cur + T21, //knife1_a
                         ref PT1, pts); //core
                         pt1 = pts[1];
-                        result2t = Vec2Ext.intersect(
+                        result2t = Vec2Ext.Intersect(
                         P_las - T1, P_las + T1, P_nxt + T31, P_cur + T2, //knife2_a
                         ref PT2, pts);
                         pt2 = pts[1];
@@ -874,7 +874,7 @@ namespace Vaser
 
                     if (d180_degree | result3 == 0) { //to solve visual bugs 3 and 1.1
                         SL[i].vP = SL[i].T;
-                        Vec2Ext.follow_signs(ref SL[i].T1, SL[i].T);
+                        Vec2Ext.FollowSigns(ref SL[i].T1, SL[i].T);
                         SL[i].djoint = Opt.PLJmiter;
                     }
                 }
@@ -1006,7 +1006,7 @@ namespace Vaser
             if (B.y > 0) {
                 angle2 = 2 * m_pi - angle2;
             }
-            if (hint.non_zero()) {
+            if (!hint.IsZero()) {
                 // special case when angle1 == angle2,
                 //   have to determine which side by hint
                 if (hint.x > 0 && hint.y == 0) {

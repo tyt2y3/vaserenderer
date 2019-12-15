@@ -101,7 +101,7 @@ namespace Vaser
                     //point
                     P.Add(V);
                     if (N > 0) {
-                        float len = (V - P[N-1]).length();
+                        float len = (V - P[N-1]).Length();
                         pathLength += len;
                         L.Add(len);
                     }
