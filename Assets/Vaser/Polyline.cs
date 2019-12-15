@@ -56,14 +56,14 @@ namespace Vaser
         }
 
         public Polyline(
-            List<Point> P, List<Color> C, List<float> W, Opt opt)
+            List<Vector2> P, List<Color> C, List<float> W, Opt opt)
             : this(P, C, W, opt, null)
         {
             // empty
         }
 
         public Polyline(
-            List<Point> P, Color C, float W, Opt opt)
+            List<Vector2> P, Color C, float W, Opt opt)
             : this(P, new List<Color> { C }, new List<float> { W }, opt, new Inopt {
                 constColor = true, constWeight = true,
             })
@@ -72,7 +72,7 @@ namespace Vaser
         }
 
         public Polyline(
-            List<Point> P, List<Color> C, List<float> W,
+            List<Vector2> P, List<Color> C, List<float> W,
             Opt opt, Inopt inopt)
         {
             int length = P.Count;
@@ -103,16 +103,16 @@ namespace Vaser
             int A = 0, B = 0;
             bool on = false;
             for (int i = 1; i < length - 1; i++) {
-                Point V1 = P[i] - P[i - 1];
-                Point V2 = P[i + 1] - P[i];
+                Vector2 V1 = P[i] - P[i - 1];
+                Vector2 V2 = P[i + 1] - P[i];
                 float len = 0;
                 if (inopt.segmentLength != null) {
                     V1 *= 1 / inopt.segmentLength[i];
                     V2 *= 1 / inopt.segmentLength[i + 1];
                     len += (inopt.segmentLength[i] + inopt.segmentLength[i + 1]) * 0.5f;
                 } else {
-                    len += V1.normalize() * 0.5f;
-                    len += V2.normalize() * 0.5f;
+                    len += Vec2Ext.normalize(ref V1) * 0.5f;
+                    len += Vec2Ext.normalize(ref V2) * 0.5f;
                 }
                 float costho = V1.x * V2.x + V1.y * V2.y;
                 const float m_pi = (float) System.Math.PI;
@@ -164,13 +164,13 @@ namespace Vaser
         // to hold info for AnchorLate() to perform triangulation
         {
             //for all joints
-            public Point vP; //vector to intersection point; outward
+            public Vector2 vP; //vector to intersection point; outward
 
             //for djoint==PLJbevel
-            public Point T; //core thickness of a line
-            public Point R; //fading edge of a line
-            public Point bR; //out stepping vector, same direction as cap
-            public Point T1; //alternate vectors, same direction as T21
+            public Vector2 T; //core thickness of a line
+            public Vector2 R; //fading edge of a line
+            public Vector2 bR; //out stepping vector, same direction as cap
+            public Vector2 T1; //alternate vectors, same direction as T21
             // all T,R,T1 are outward
 
             //for djoint==PLJround
@@ -180,7 +180,7 @@ namespace Vaser
             public bool degenT; //core degenerated
             public bool degenR; //fade degenerated
             public bool preFull; //draw the preceding segment in full
-            public Point PT;
+            public Vector2 PT;
             public float pt; //parameter at intersection
 
             public char djoint; //determined joint
@@ -190,19 +190,19 @@ namespace Vaser
         private class StAnchor
         // to hold memory for the working of anchor()
         {
-            public Point[] P = new Point[3]; //point
+            public Vector2[] P = new Vector2[3]; //point
             public Color[] C = new Color[3]; //color
             public float[] W = new float[3]; //weight
 
-            public Point capStart = new Point();
-            public Point capEnd = new Point();
+            public Vector2 capStart = new Vector2();
+            public Vector2 capEnd = new Vector2();
             public StPolyline[] SL = new StPolyline[3];
             public VertexArrayHolder vah = new VertexArrayHolder();
         }
 
         private static void PolyPointInter(
-            List<Point> P, List<Color> C, List<float> W,
-            Inopt inopt, ref Point p, ref Color c, ref float w, int at, float t)
+            List<Vector2> P, List<Color> C, List<float> W,
+            Inopt inopt, ref Vector2 p, ref Color c, ref float w, int at, float t)
         {
             Color color(int I) {
                 return C[inopt != null && inopt.constColor ? 0 : I];
@@ -227,7 +227,7 @@ namespace Vaser
         }
 
         private static void PolylineApprox(
-            List<Point> P, List<Color> C, List<float> W,
+            List<Vector2> P, List<Color> C, List<float> W,
             Opt opt, Inopt inopt, int from, int to)
         {
             if (to - from + 1 < 2) {
@@ -245,16 +245,16 @@ namespace Vaser
             float weight(int I) {
                 return W[inopt != null && inopt.constWeight ? from: I];
             }
-            void poly_step(int i, Point pp, float ww, Color cc) {
+            void poly_step(int i, Vector2 pp, float ww, Color cc) {
                 float t = 0, r = 0;
                 DetermineTr(weight(i), ref t, ref r, opt.worldToScreenRatio);
                 if (opt.feather && !opt.noFeatherAtCore) {
                     r *= opt.feathering;
                 }
                 float rr = (t + r) / r;
-                Point V = P[i] - P[i - 1];
-                V.perpen();
-                V.normalize();
+                Vector2 V = P[i] - P[i - 1];
+                Vec2Ext.perpen(ref V);
+                Vec2Ext.normalize(ref V);
                 V *= (t + r);
                 vcore.Push(pp - V, color(i), rr);
                 vcore.Push(pp + V, color(i), 0);
@@ -263,7 +263,7 @@ namespace Vaser
             for (int i = from + 1; i < to; i++) {
                 poly_step(i, P[i], weight(i), color(i));
             }
-            Point P_las = new Point(), P_fir = new Point();
+            Vector2 P_las = new Vector2(), P_fir = new Vector2();
             Color C_las = new Color(), C_fir = new Color();
             float W_las = 0, W_fir = 0;
             PolyPointInter(P, C, W, inopt, ref P_las, ref C_las, ref W_las, to - 1, 0.5f);
@@ -300,7 +300,7 @@ namespace Vaser
         }
 
         private static void PolylineExact(
-            List<Point> P, List<Color> C, List<float> W,
+            List<Vector2> P, List<Color> C, List<float> W,
             Opt opt, Inopt inopt, int from, int to)
         {
             bool capFirst = !(inopt != null && inopt.noCapFirst);
@@ -315,7 +315,7 @@ namespace Vaser
                 return W[inopt != null && inopt.constWeight ? from: I];
             }
 
-            Point mid_l = new Point(), mid_n = new Point(); //the last and the next mid point
+            Vector2 mid_l = new Vector2(), mid_n = new Vector2(); //the last and the next mid point
             Color c_l = new Color(), c_n = new Color();
             float w_l = 0, w_n = 0;
 
@@ -365,7 +365,7 @@ namespace Vaser
         }
 
         private static void PolylineRange(
-            List<Point> P, List<Color> C, List<float> W,
+            List<Vector2> P, List<Color> C, List<float> W,
             Opt opt, Inopt ininopt, int from, int to, bool approx)
         {
             Inopt inopt;
@@ -398,7 +398,7 @@ namespace Vaser
             opt.worldToScreenRatio = scale;
             if (triangles.glmode == VertexArrayHolder.GL_TRIANGLES) {
                 for (int i = 0; i < triangles.GetCount(); i++) {
-                    List<Point> P = new List<Point> ();
+                    List<Vector2> P = new List<Vector2> ();
                     P.Add(triangles.Get(i));
                     i += 1;
                     P.Add(triangles.Get(i));
@@ -410,7 +410,7 @@ namespace Vaser
                 }
             } else if (triangles.glmode == VertexArrayHolder.GL_TRIANGLE_STRIP) {
                 for (int i = 2; i < triangles.GetCount(); i++) {
-                    List<Point> P = new List<Point> ();
+                    List<Vector2> P = new List<Vector2> ();
                     P.Add(triangles.Get(i - 2));
                     P.Add(triangles.Get(i));
                     P.Add(triangles.Get(i - 1));
@@ -454,7 +454,7 @@ namespace Vaser
         }
 
         private static void MakeTrc(
-            ref Point P1, ref Point P2, ref Point T, ref Point R, ref Point C,
+            ref Vector2 P1, ref Vector2 P2, ref Vector2 T, ref Vector2 R, ref Vector2 C,
             float w, Opt opt, ref float rr, ref float tt, ref float dist, bool anchorMode)
         {
             float t = 1.0f, r = 0.0f;
@@ -471,10 +471,10 @@ namespace Vaser
             //output
             tt = t;
             rr = r;
-            Point DP = P2 - P1;
-            dist = DP.normalize();
+            Vector2 DP = P2 - P1;
+            dist = Vec2Ext.normalize(ref DP);
             C = DP * (1 / opt.worldToScreenRatio);
-            DP.perpen();
+            Vec2Ext.perpen(ref DP);
             T = DP * t;
             R = DP * r;
         }
@@ -483,22 +483,22 @@ namespace Vaser
         {
             float[] weight = SA.W;
 
-            Point[] P = new Point[2];
+            Vector2[] P = new Vector2[2];
             P[0] = SA.P[0];
             P[1] = SA.P[1];
             Color[] C = new Color[3];
             C[0] = SA.C[0];
             C[1] = SA.C[1];
 
-            Point T2 = new Point();
-            Point R2 = new Point();
-            Point bR = new Point();
+            Vector2 T2 = new Vector2();
+            Vector2 R2 = new Vector2();
+            Vector2 bR = new Vector2();
             float t = 0, r = 0;
 
             bool varying_weight = !(weight[0] == weight[1]);
 
-            Point capStart = new Point(),
-            capEnd = new Point();
+            Vector2 capStart = new Vector2(),
+            capEnd = new Vector2();
             StPolyline[] SL = new StPolyline[2];
 
             /*for (int i = 0; i < 2; i++) {
@@ -516,10 +516,10 @@ namespace Vaser
 
                 if (capFirst) {
                     if (opt.cap == Opt.PLCsquare) {
-                        P[0] = new Point(P[0]) - bR * (t + r);
+                        P[0] = P[0] - (bR * (t + r));
                     }
                     capStart = bR;
-                    capStart.opposite();
+                    Vec2Ext.opposite(ref capStart);
                     if (opt.feather && !opt.noFeatherAtCap) {
                         capStart *= opt.feathering;
                     }
@@ -566,14 +566,14 @@ namespace Vaser
         }
 
         private static void SegmentLate(
-            Opt opt, Point[] P, Color[] C, StPolyline[] SL,
-            VertexArrayHolder tris, Point cap1, Point cap2, bool core)
+            Opt opt, Vector2[] P, Color[] C, StPolyline[] SL,
+            VertexArrayHolder tris, Vector2 cap1, Vector2 cap2, bool core)
         {
             tris.SetGlDrawMode(VertexArrayHolder.GL_TRIANGLES);
 
-            Point P_0, P_1;
-            P_0 = new Point(P[0]);
-            P_1 = new Point(P[1]);
+            Vector2 P_0, P_1;
+            P_0 = P[0];
+            P_1 = P[1];
             if (SL[0].djoint == Opt.PLCbutt || SL[0].djoint == Opt.PLCsquare) {
                 P_0 -= cap1;
             }
@@ -581,9 +581,9 @@ namespace Vaser
                 P_1 -= cap2;
             }
 
-            Point P1, P2, P3, P4; //core
-            Point P1c, P2c, P3c, P4c; //cap
-            Point P1r, P2r, P3r, P4r; //fade
+            Vector2 P1, P2, P3, P4; //core
+            Vector2 P1c, P2c, P3c, P4c; //cap
+            Vector2 P1r, P2r, P3r, P4r; //fade
 
             P1 = P_0 + SL[0].T + SL[0].R;
             P1r = P1 - SL[0].R;
@@ -612,14 +612,14 @@ namespace Vaser
             for (int j = 0; j < 2; j++) {
                 VertexArrayHolder cap = new VertexArrayHolder();
                 cap.SetGlDrawMode(VertexArrayHolder.GL_TRIANGLE_STRIP);
-                Point cur_cap = j == 0 ? cap1: cap2;
+                Vector2 cur_cap = j == 0 ? cap1: cap2;
                 if (cur_cap.is_zero()) {
                     continue;
                 }
 
                 if (SL[j].djoint == Opt.PLCround) {
                     //round cap
-                    Point O = P[j];
+                    Vector2 O = P[j];
                     float dangle = GetPljRoundDangle(SL[j].t, SL[j].r, opt.worldToScreenRatio);
 
                     VectorsToArc(
@@ -630,7 +630,7 @@ namespace Vaser
                     tris.Push(cap);
                 } else if (SL[j].djoint != Opt.PLCnone) {
                     //rectangular cap
-                    Point Pj, Pjr, Pjc, Pk, Pkr, Pkc;
+                    Vector2 Pj, Pjr, Pjc, Pk, Pkr, Pkc;
                     if (j == 0) {
                         Pj = P1;
                         Pjr = P1r;
@@ -668,13 +668,13 @@ namespace Vaser
 
         private static void Anchor(StAnchor SA, Opt opt, bool capFirst, bool capLast)
         {
-            Point[] P = SA.P;
+            Vector2[] P = SA.P;
             Color[] C = SA.C;
             float[] weight = SA.W;
             StPolyline[] SL = SA.SL;
-            if (Point.signed_area(P[0], P[1], P[2]) > 0) {
+            if (Vec2Ext.signed_area(P[0], P[1], P[2]) > 0) {
                 // rectify clockwise
-                P = new Point[3] { P[2], P[1], P[0] };
+                P = new Vector2[3] { P[2], P[1], P[0] };
                 C = new Color[3] { C[2], C[1], C[0] };
                 weight = new float[3] { weight[2], weight[1], weight[0] };
             }
@@ -686,7 +686,7 @@ namespace Vaser
 
             bool varying_weight = !(weight[0] == weight[1] & weight[1] == weight[2]);
 
-            Point T1 = new Point(), T2 = new Point(), T21 = new Point(), T31 = new Point(), RR = new Point();
+            Vector2 T1 = new Vector2(), T2 = new Vector2(), T21 = new Vector2(), T31 = new Vector2(), RR = new Vector2();
 
             /*for (int i = 0; i < 3; i++) {
                 //lower the transparency for weight < 1.0
@@ -699,7 +699,7 @@ namespace Vaser
             {
                 int i = 0;
 
-                Point cap0 = new Point(), cap1 = new Point();
+                Vector2 cap0 = new Vector2(), cap1 = new Vector2();
                 float r = 0f, t = 0f, d = 0f;
                 MakeTrc(ref P[i], ref P[i + 1], ref T2, ref RR, ref cap1, weight[i], opt, ref r, ref t, ref d, true);
                 if (varying_weight) {
@@ -714,7 +714,7 @@ namespace Vaser
                     if (opt.cap == Opt.PLCsquare) {
                         P[0] = P[0] - cap1 * (t + r);
                     }
-                    cap1.opposite();
+                    Vec2Ext.opposite(ref cap1);
                     if (opt.feather && !opt.noFeatherAtCap) cap1 *= opt.feathering;
                     SA.capStart = cap1;
                 }
@@ -731,7 +731,7 @@ namespace Vaser
             if (capLast) {
                 int i = 2;
 
-                Point cap0 = new Point(), cap2 = new Point();
+                Vector2 cap0 = new Vector2(), cap2 = new Vector2();
                 float t = 0f, r = 0f, d = 0f;
                 MakeTrc(ref P[i - 1], ref P[i], ref cap0, ref cap0, ref cap2, weight[i], opt, ref r, ref t, ref d, true);
                 if (opt.cap == Opt.PLCsquare) {
@@ -748,16 +748,16 @@ namespace Vaser
                 int i = 1;
 
                 float r = 0f, t = 0f;
-                Point P_cur = P[i]; //current point
-                Point P_nxt = P[i + 1]; //next point
-                Point P_las = P[i - 1]; //last point
+                Vector2 P_cur = P[i]; //current point
+                Vector2 P_nxt = P[i + 1]; //next point
+                Vector2 P_las = P[i - 1]; //last point
                 if (opt.cap == Opt.PLCbutt || opt.cap == Opt.PLCsquare) {
                     P_nxt -= SA.capEnd;
                     P_las -= SA.capStart;
                 }
 
                 {
-                    Point cap0 = new Point(), bR = new Point();
+                    Vector2 cap0 = new Vector2(), bR = new Vector2();
                     float length_cur = 0f, length_nxt = 0f, d = 0f;
                     MakeTrc(ref P_las, ref P_cur, ref T1, ref RR, ref cap0, weight[i - 1], opt, ref d, ref d, ref length_cur, true);
                     if (varying_weight) {
@@ -784,12 +784,12 @@ namespace Vaser
 
                 {   //2nd point
                     //find the angle between the 2 line segments
-                    Point ln1 = new Point(), ln2 = new Point(), V = new Point();
+                    Vector2 ln1 = new Vector2(), ln2 = new Vector2(), V = new Vector2();
                     ln1 = P_cur - P_las;
                     ln2 = P_nxt - P_cur;
-                    ln1.normalize();
-                    ln2.normalize();
-                    Point.dot(ln1, ln2, ref V);
+                    Vec2Ext.normalize(ref ln1);
+                    Vec2Ext.normalize(ref ln2);
+                    Vec2Ext.dot(ln1, ln2, ref V);
                     float cos_tho = V.x - V.y;
                     bool zero_degree = System.Math.Abs(cos_tho - 1.0f) < 0.0000001f;
                     bool d180_degree = cos_tho < -1.0f + 0.0001f;
@@ -803,17 +803,17 @@ namespace Vaser
                         }
                     }
 
-                    Point.anchor_outward(ref T1, P_cur, P_nxt);
-                    Point.anchor_outward(ref T21, P_cur, P_nxt);
-                    SL[i].T1.follow_signs(T21);
-                    Point.anchor_outward(ref T2, P_cur, P_las);
-                    SL[i].T.follow_signs(T2);
-                    Point.anchor_outward(ref T31, P_cur, P_las);
+                    Vec2Ext.anchor_outward(ref T1, P_cur, P_nxt);
+                    Vec2Ext.anchor_outward(ref T21, P_cur, P_nxt);
+                    Vec2Ext.follow_signs(ref SL[i].T1, T21);
+                    Vec2Ext.anchor_outward(ref T2, P_cur, P_las);
+                    Vec2Ext.follow_signs(ref SL[i].T, T2);
+                    Vec2Ext.anchor_outward(ref T31, P_cur, P_las);
 
                     {   //must do intersection
-                        Point interP = new Point(), vP = new Point();
+                        Vector2 interP = new Vector2(), vP = new Vector2();
                         float[] pts = new float[2];
-                        result3 = Point.intersect(
+                        result3 = Vec2Ext.intersect(
                             P_las + T1, P_cur + T21, P_nxt + T31, P_cur + T2, ref interP, pts);
 
                         if (result3 != 0) {
@@ -842,22 +842,22 @@ namespace Vaser
                         return;
                     }
 
-                    T1.opposite();
-                    T21.opposite();
-                    T2.opposite();
-                    T31.opposite();
+                    Vec2Ext.opposite(ref T1);
+                    Vec2Ext.opposite(ref T21);
+                    Vec2Ext.opposite(ref T2);
+                    Vec2Ext.opposite(ref T31);
 
                     //make intersections
-                    Point PT1 = new Point(), PT2 = new Point();
+                    Vector2 PT1 = new Vector2(), PT2 = new Vector2();
                     float pt1 = 0f, pt2 = 0f;
                     int result1t, result2t;
                     {
                         float[] pts = new float[2];
-                        result1t = Point.intersect(
+                        result1t = Vec2Ext.intersect(
                         P_nxt - T31, P_nxt + T31, P_las + T1, P_cur + T21, //knife1_a
                         ref PT1, pts); //core
                         pt1 = pts[1];
-                        result2t = Point.intersect(
+                        result2t = Vec2Ext.intersect(
                         P_las - T1, P_las + T1, P_nxt + T31, P_cur + T2, //knife2_a
                         ref PT2, pts);
                         pt2 = pts[1];
@@ -874,7 +874,7 @@ namespace Vaser
 
                     if (d180_degree | result3 == 0) { //to solve visual bugs 3 and 1.1
                         SL[i].vP = SL[i].T;
-                        SL[i].T1.follow_signs(SL[i].T);
+                        Vec2Ext.follow_signs(ref SL[i].T1, SL[i].T);
                         SL[i].djoint = Opt.PLJmiter;
                     }
                 }
@@ -883,7 +883,7 @@ namespace Vaser
             {
                 int i = 2;
 
-                Point cap0 = new Point();
+                Vector2 cap0 = new Vector2();
                 float r = 0f, t = 0f, d = 0f;
                 MakeTrc(ref P[i - 1], ref P[i], ref T2, ref RR, ref cap0, weight[i], opt, ref r, ref t, ref d, true);
 
@@ -910,14 +910,14 @@ namespace Vaser
         } //Anchor
 
         private static void AnchorLate(
-            Opt opt, Point[] P, Color[] C, StPolyline[] SL,
-            VertexArrayHolder tris, Point cap1, Point cap2)
+            Opt opt, Vector2[] P, Color[] C, StPolyline[] SL,
+            VertexArrayHolder tris, Vector2 cap1, Vector2 cap2)
         {
-            Point P_0 = P[0], P_1 = P[1], P_2 = P[2];
+            Vector2 P_0 = P[0], P_1 = P[1], P_2 = P[2];
             if (SL[0].djoint == Opt.PLCbutt || SL[0].djoint == Opt.PLCsquare) P_0 -= cap1;
             if (SL[2].djoint == Opt.PLCbutt || SL[2].djoint == Opt.PLCsquare) P_2 -= cap2;
 
-            Point P0, P1, P2, P3, P4, P5, P6, P7;
+            Vector2 P0, P1, P2, P3, P4, P5, P6, P7;
 
             P0 = P_1 + SL[1].vP;
             P1 = P_1 - SL[1].vP;
@@ -970,9 +970,9 @@ namespace Vaser
                         strip.SetGlDrawMode(VertexArrayHolder.GL_TRIANGLE_STRIP);
 
                         if (normal_line_core_joint == 1) {
-                            VectorsToArc(strip, P_1, C[1], C[1], SL[1].T1, SL[1].T, GetPljRoundDangle(SL[1].t, SL[1].r, opt.worldToScreenRatio), SL[1].t, 0.0f, false, P1, new Point(), rr, true);
+                            VectorsToArc(strip, P_1, C[1], C[1], SL[1].T1, SL[1].T, GetPljRoundDangle(SL[1].t, SL[1].r, opt.worldToScreenRatio), SL[1].t, 0.0f, false, P1, new Vector2(), rr, true);
                         } else if (normal_line_core_joint == 2) {
-                            VectorsToArc(strip, P_1, C[1], C[1], SL[1].T1, SL[1].T, GetPljRoundDangle(SL[1].t, SL[1].r, opt.worldToScreenRatio), SL[1].t, 0.0f, false, P5, new Point(), rr, true);
+                            VectorsToArc(strip, P_1, C[1], C[1], SL[1].T1, SL[1].T, GetPljRoundDangle(SL[1].t, SL[1].r, opt.worldToScreenRatio), SL[1].t, 0.0f, false, P5, new Vector2(), rr, true);
                         }
                         tris.Push(strip);
                     }
@@ -982,15 +982,15 @@ namespace Vaser
         } //AnchorLate
 
         private static void VectorsToArc(
-            VertexArrayHolder hold, Point P, Color C, Color C2,
-            Point PA, Point PB, float dangle, float r, float r2,
-            bool ignorEnds, Point apparentP, Point hint, float rr, bool innerFade)
+            VertexArrayHolder hold, Vector2 P, Color C, Color C2,
+            Vector2 PA, Vector2 PB, float dangle, float r, float r2,
+            bool ignorEnds, Vector2 apparentP, Vector2 hint, float rr, bool innerFade)
         {
             // triangulate an inner arc between vectors A and B,
             // A and B are position vectors relative to P
             const float m_pi = (float) System.Math.PI;
-            Point A = PA * (1 / r);
-            Point B = PB * (1 / r);
+            Vector2 A = PA * (1 / r);
+            Vector2 B = PB * (1 / r);
             float rrr;
             if (innerFade) {
                 rrr = 0;
@@ -1056,14 +1056,14 @@ namespace Vaser
 
             if (incremental) {
                 if (!ignorEnds) {
-                    hold.Push(new Point(P.x + PB.x, P.y + PB.y), C, rr);
+                    hold.Push(new Vector2(P.x + PB.x, P.y + PB.y), C, rr);
                     hold.Push(apparentP, C2, rrr);
                 }
                 for (float a = angle2 - dangle; a > angle1; a -= dangle) {
                     inner_arc_push(System.Math.Cos(a), System.Math.Sin(a));
                 }
                 if (!ignorEnds) {
-                    hold.Push(new Point(P.x + PA.x, P.y + PA.y), C, rr);
+                    hold.Push(new Vector2(P.x + PA.x, P.y + PA.y), C, rr);
                     hold.Push(apparentP, C2, rrr);
                 }
             }
@@ -1071,19 +1071,19 @@ namespace Vaser
             {
                 if (!ignorEnds) {
                     hold.Push(apparentP, C2, rr);
-                    hold.Push(new Point(P.x + PB.x, P.y + PB.y), C, rrr);
+                    hold.Push(new Vector2(P.x + PB.x, P.y + PB.y), C, rrr);
                 }
                 for (float a = angle2 + dangle; a < angle1; a += dangle) {
                     inner_arc_push(System.Math.Cos(a), System.Math.Sin(a), true);
                 }
                 if (!ignorEnds) {
                     hold.Push(apparentP, C2, rr);
-                    hold.Push(new Point(P.x + PA.x, P.y + PA.y), C, rrr);
+                    hold.Push(new Vector2(P.x + PA.x, P.y + PA.y), C, rrr);
                 }
             }
 
             void inner_arc_push(double x, double y, bool reverse = false) {
-                Point PP = new Point(P.x + (float) x * r, P.y - (float) y * r);
+                Vector2 PP = new Vector2(P.x + (float) x * r, P.y - (float) y * r);
                 //hold.Dot(PP, 0.05f); return;
                 if (!reverse) {
                     hold.Push(PP, C, rr);
@@ -1109,18 +1109,9 @@ namespace Vaser
             return dangle;
         }
 
-        private static void SameSideOfLine(ref Point V, Point R, Point a, Point b)
-        {
-            float sign1 = Point.signed_area(a + R, a, b);
-            float sign2 = Point.signed_area(a + V, a, b);
-            if ((sign1 >= 0) != (sign2 >= 0)) {
-                V.opposite();
-            }
-        }
-
         private static void PushQuad(
             VertexArrayHolder tris,
-            ref Point P1, ref Point P2, ref Point P3, ref Point P4, 
+            ref Vector2 P1, ref Vector2 P2, ref Vector2 P3, ref Vector2 P4, 
             ref Color C1, ref Color C2, ref Color C3, ref Color C4,
             float r1, float r2, float r3, float r4)
         {

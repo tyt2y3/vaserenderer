@@ -29,10 +29,10 @@ namespace Vaser
             glmode = gl_draw_mode;
         }
 
-        public int Push(Point P, Color cc, float fade0=0)
+        public int Push(Vector2 P, Color cc, float fade0=0)
         {
             int cur = vert.Count;
-            vert.Add(new Vector3(P.x, P.y, 0));
+            vert.Add(P); // A Vector2 can be implicitly converted into a Vector3. (The z is set to zero in the result).
             color.Add(cc);
             fade.Add(fade0);
 
@@ -44,14 +44,14 @@ namespace Vaser
             return cur;
         }
 
-        public int PushF(Point P, Color C)
+        public int PushF(Vector2 P, Color C)
         {
             C.a = 0;
             return Push(P, C);
         }
 
         public void Push3(
-                Point P1, Point P2, Point P3,
+                Vector2 P1, Vector2 P2, Vector2 P3,
                 Color C1, Color C2, Color C3,
                 float fade1=0, float fade2=0, float fade3=0)
         {
@@ -60,15 +60,15 @@ namespace Vaser
             Push(P3, C3, fade3);
         }
 
-        public void Dot(Point P, float size)
+        public void Dot(Vector2 P, float size)
         {
             size /= 2;
             if (glmode == GL_TRIANGLES) {
             } else if (glmode == GL_TRIANGLE_STRIP) {
-                Push(new Point(P.x-size, P.y), Color.red);
-                Push(new Point(P.x, P.y+size), Color.red);
-                Push(new Point(P.x, P.y-size), Color.red);
-                Push(new Point(P.x+size, P.y), Color.red);
+                Push(new Vector2(P.x-size, P.y), Color.red);
+                Push(new Vector2(P.x, P.y+size), Color.red);
+                Push(new Vector2(P.x, P.y-size), Color.red);
+                Push(new Vector2(P.x+size, P.y), Color.red);
                 Jump();
             }
         }
@@ -96,9 +96,9 @@ namespace Vaser
             }
         }
 
-        public Point Get(int i)
+        public Vector2 Get(int i)
         {
-            Point P = new Point();
+            Vector2 P = new Vector2();
             P.x = vert[i].x;
             P.y = vert[i].y;
             return P;
@@ -109,7 +109,7 @@ namespace Vaser
             return color[b];
         }
 
-        public Point GetRelativeEnd(int di = -1)
+        public Vector2 GetRelativeEnd(int di = -1)
         {
             //di=-1 is the last one
             int count = vert.Count;

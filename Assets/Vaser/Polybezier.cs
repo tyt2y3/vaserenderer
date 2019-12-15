@@ -12,13 +12,13 @@ namespace Vaser
             public float worldToScreenRatio = 1.0f;
         }
 
-        public Polybezier(List<Point> P, Color cc, float ww, Opt opt)
+        public Polybezier(List<Vector2> P, Color cc, float ww, Opt opt)
             : this(P, new Gradient(cc, ww), opt)
         {
             // empty
         }
 
-        public Polybezier(List<Point> P, Gradient grad, Opt opt)
+        public Polybezier(List<Vector2> P, Gradient grad, Opt opt)
         {
             buffer = new Buffer();
             if (opt == null) {
@@ -55,7 +55,7 @@ namespace Vaser
 
         private class Buffer
         {
-            public List<Point> P;
+            public List<Vector2> P;
             public List<Color> C;
             public List<float> W;
             public List<float> L; //length along polyline
@@ -63,7 +63,7 @@ namespace Vaser
 
             public Buffer()
             {
-                P = new List<Point>();
+                P = new List<Vector2>();
                 C = new List<Color>();
                 W = new List<float>();
                 L = new List<float>();
@@ -88,11 +88,11 @@ namespace Vaser
 
             public void AddPoint(double x, double y)
             {
-                Point V = new Point((float) x, (float) y);
+                Vector2 V = new Vector2((float) x, (float) y);
                 AddVertex(V, new Color(0,0,0,1), 1);
             }
 
-            private bool AddVertex(Point V, Color cc, float ww)
+            private bool AddVertex(Vector2 V, Color cc, float ww)
             {
                 int N = P.Count;
                 if (N > 0 && P[N-1].x == V.x && P[N-1].y == V.y) {

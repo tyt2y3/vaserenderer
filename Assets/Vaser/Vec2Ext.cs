@@ -1,110 +1,76 @@
+using UnityEngine;
+
 namespace Vaser
 {
-    public struct Point
+    public static class Vec2Ext
     {
-        public float x;
-        public float y;
-
-        public Point(Point P) { x = P.x; y = P.y; }
-        public Point(float X, float Y) { x = X; y = Y; }
-
-        // attributes
-        public float length()
+        public static float length(this Vector2 a)
         {
-            return (float) System.Math.Sqrt(x*x+y*y);
+            return (float) System.Math.Sqrt(a.x*a.x+a.y*a.y);
         }
-        public static float signed_area(Point P1, Point P2, Point P3)
+        public static float signed_area(Vector2 P1, Vector2 P2, Vector2 P3)
         {
             return (P2.x-P1.x)*(P3.y-P1.y) - (P3.x-P1.x)*(P2.y-P1.y);
         }
-
-        // operators    
-        public static Point operator + (Point a, Point b)
-        {
-            return new Point(a.x + b.x, a.y + b.y);
-        }
-        public static Point operator - (Point a)
-        {
-            return new Point(-a.x, -a.y);
-        }
-        public static Point operator - (Point a, Point b)
-        {
-            return new Point(a.x-b.x, a.y-b.y);
-        }
-        public static Point operator * (Point a, float k)
-        {
-            return new Point(a.x*k, a.y*k);
-        }
-
-        public static void dot(Point a, Point b, ref Point o) //dot product: o = a dot b
+        public static void dot(Vector2 a, Vector2 b, ref Vector2 o) //dot product: o = a dot b
         {
             o.x = a.x * b.x;
             o.y = a.y * b.y;
         }
-        public Point dot_prod(Point b) //return dot product
+        public static void opposite(ref Vector2 a)
         {
-            return new Point(x*b.x, y*b.y);
+            a.x = -a.x;
+            a.y = -a.y;
         }
-
-        // self operations
-        public void opposite()
+        public static float normalize(ref Vector2 a)
         {
-            x = -x;
-            y = -y;
-        }
-        public void opposite_of(Point a)
-        {
-            x = -a.x;
-            y = -a.y;
-        }
-        public float normalize()
-        {
-            float L = length();
-            if ( L > 0.0000001)
+            float L = a.length();
+            if (L > 0.0000001f)
             {
-                x /= L; y /= L;
+                a.x /= L;
+                a.y /= L;
             }
             return L;
         }
-        public int octant()
+        public static int octant(this Vector2 a)
         {
-            if (x == 0 && y == 0) {
+            if (a.x == 0 && a.y == 0) {
                 return 0;
             }
-            if (x == 0) {
-                return y > 0 ? 3 : 7;
+            if (a.x == 0) {
+                return a.y > 0 ? 3 : 7;
             }
-            if (y == 0) {
-                return x > 0 ? 1 : 5;
+            if (a.y == 0) {
+                return a.x > 0 ? 1 : 5;
             }
-            if (x > 0 && y > 0) {
-                if (y/x < 0.5f) {
+            if (a.x > 0 && a.y > 0) {
+                if (a.y/a.x < 0.5f) {
                     return 1;
-                } else if (y/x > 2f) {
+                } else if (a.y/a.x > 2f) {
                     return 3;
                 } else {
                     return 2;
                 }
-            } else if (x < 0 && y > 0) {
-                if (y/x < -2f) {
+            } else if (a.x < 0 && a.y > 0) {
+                if (a.y/a.x < -2f) {
                     return 3;
-                } else if (y/x > -0.5f) {
+                } else if (a.y/a.x > -0.5f) {
                     return 5;
                 } else {
                     return 4;
                 }
-            } else if (x < 0 && y < 0) {
-                if (y/x < 0.5f) {
+            } else if (a.x < 0 && a.y < 0) {
+                if (a.y/a.x < 0.5f) {
                     return 5;
-                } else if (y/x > 2f) {
+                } else if (a.y/a.x > 2f) {
                     return 7;
                 } else {
                     return 6;
                 }
-            } else if (x > 0 && y < 0) {
-                if (y/x < -2f) {
+            } else if (a.x > 0 && a.y < 0) {
+                if (a.y/a.x < -2f) {
                     return 7;
-                } else if (y/x > -0.5f) {
+                } else if (a.y/a.x > -0.5f) {
                     return 1;
                 } else {
                     return 8;
@@ -112,16 +78,16 @@ namespace Vaser
             }
             return 0;
         }
-        public void perpen() //perpendicular: anti-clockwise 90 degrees
+        public static void perpen(ref Vector2 a) //perpendicular: anti-clockwise 90 degrees
         {
-            float y_value=y;
-            y=x;
-            x=-y_value;
+            float y_value=a.y;
+            a.y=a.x;
+            a.x=-y_value;
         }
-        public void follow_signs(Point a)
+        public static void follow_signs(ref Vector2 a, Vector2 b)
         {
-            if ((x>0) != (a.x>0)) x = -x;
-            if ((y>0) != (a.y>0)) y = -y;
+            if ((a.x>0) != (b.x>0)) a.x = -a.x;
+            if ((a.y>0) != (b.y>0)) a.y = -a.y;
         }
 
         //judgements
@@ -135,43 +101,43 @@ namespace Vaser
             const double vaser_min_alw = 0.0000000001;
             return -vaser_min_alw < M && M < vaser_min_alw;
         }
-        public bool negligible()
+        public static bool negligible(this Vector2 a)
         {
-            return negligible(x) && negligible(y);
+            return negligible(a.x) && negligible(a.y);
         }
-        public bool non_negligible()
+        public static bool non_negligible(this Vector2 a)
         {
-            return !negligible();
+            return !a.negligible();
         }
-        public bool is_zero()
+        public static bool is_zero(this Vector2 a)
         {
-            return x==0.0 && y==0.0;
+            return a.x==0.0 && a.y==0.0;
         }
-        public bool non_zero()
+        public static bool non_zero(this Vector2 a)
         {
-            return !is_zero();
+            return !a.is_zero();
         }
-        public static bool intersecting(Point A, Point B, Point C, Point D)
+        public static bool intersecting(Vector2 A, Vector2 B, Vector2 C, Vector2 D)
         {   //return true if AB intersects CD
             return signed_area(A,B,C)>0 != signed_area(A,B,D)>0;
         }
 
         //operations require 2 input points
-        public static float distance_squared(Point A, Point B)
+        public static float distance_squared(Vector2 A, Vector2 B)
         {
             float dx=A.x-B.x;
             float dy=A.y-B.y;
             return (dx*dx+dy*dy);
         }
-        public static float distance(Point A, Point B)
+        public static float distance(Vector2 A, Vector2 B)
         {
             return (float) System.Math.Sqrt(distance_squared(A, B));
         }
-        public static Point midpoint(Point A, Point B)
+        public static Vector2 midpoint(Vector2 A, Vector2 B)
         {
             return (A+B)*0.5f;
         }
-        public static bool opposite_quadrant(Point P1, Point P2)
+        public static bool opposite_quadrant(Vector2 P1, Vector2 P2)
         {
             int P1x = P1.x>0? 1:(P1.x<0?-1:0);
             int P1y = P1.y>0? 1:(P1.y<0?-1:0);
@@ -194,11 +160,11 @@ namespace Vaser
         }
 
         //operations of 3 points
-        public static bool anchor_outward_D(Point V, Point b, Point c)
+        public static bool anchor_outward_D(Vector2 V, Vector2 b, Vector2 c)
         {
             return (b.x*V.x - c.x*V.x + b.y*V.y - c.y*V.y) > 0;
         }
-        public static bool anchor_outward(ref Point V, Point b, Point c, bool reverse=false)
+        public static bool anchor_outward(ref Vector2 V, Vector2 b, Vector2 c, bool reverse=false)
         {   //put the correct outward vector at V, with V placed on b, comparing distances from c
             bool determinant = anchor_outward_D ( V,b,c);
             if ( determinant == (!reverse)) {
@@ -212,16 +178,16 @@ namespace Vaser
                 return true; //return whether V is changed
             }
         }
-        public static void anchor_inward(ref Point V, Point b, Point c)
+        public static void anchor_inward(ref Vector2 V, Vector2 b, Vector2 c)
         {
             anchor_outward(ref V,b,c,true);
         }
 
         //operations of 4 points
         public static int intersect(
-                Point P1, Point P2, //line 1
-                Point P3, Point P4, //line 2
-                ref Point Pout,     //the output point
+                Vector2 P1, Vector2 P2, //line 1
+                Vector2 P3, Vector2 P4, //line 2
+                ref Vector2 Pout,     //the output point
                 float[] u_out = null)
         {   //Determine the intersection point of two line segments
             float mua, mub;

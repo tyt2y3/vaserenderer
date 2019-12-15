@@ -24,11 +24,11 @@ public class Demo : MonoBehaviour {
 
         if (mode == 1) {
             polyline = new Polyline(
-                new List<Point> {
-                    new Point(0, .75f),
-                    new Point(-.75f, -.1f),
-                    new Point(.75f, .1f),
-                    new Point(0, -.75f),
+                new List<Vector2> {
+                    new Vector2(0, .75f),
+                    new Vector2(-.75f, -.1f),
+                    new Vector2(.75f, .1f),
+                    new Vector2(0, -.75f),
                 },
                 new List<Color> {
                     Color.red,
@@ -43,11 +43,11 @@ public class Demo : MonoBehaviour {
             );
         } else if (mode == 2) {
             Polybezier polybezier = new Polybezier(
-                new List<Point> {
-                    new Point(0, .75f),
-                    new Point(-.75f, -.1f),
-                    new Point(.75f, .1f),
-                    new Point(0, -.75f),
+                new List<Vector2> {
+                    new Vector2(0, .75f),
+                    new Vector2(-.75f, -.1f),
+                    new Vector2(.75f, .1f),
+                    new Vector2(0, -.75f),
                 },
                 new Vaser.Gradient (
                     new List<Vaser.Gradient.Stop> {
