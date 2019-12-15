@@ -9,7 +9,7 @@ namespace Vaser
 
         public class Opt
         {
-            public float world_to_screen_ratio = 1.0f;
+            public float worldToScreenRatio = 1.0f;
         }
 
         public Polybezier(List<Point> P, Color cc, float ww, Opt opt)
@@ -25,7 +25,7 @@ namespace Vaser
                 opt = new Opt();
             }
 
-            double default_approximation_scale = (grad.stops.Count > 2 ? 2 : 1) * opt.world_to_screen_ratio;
+            double default_approximation_scale = (grad.stops.Count > 2 ? 2 : 1) * opt.worldToScreenRatio;
             const double default_angle_tolerance = (15 / 180 * System.Math.PI);
             const double default_cusp_limit = 5.0;
 
@@ -47,8 +47,8 @@ namespace Vaser
 
         public Polyline Render(Polyline.Opt opt)
         {
-            if (opt.joint == Polyline.Opt.PLJ_miter) {
-                opt.joint = Polyline.Opt.PLJ_bevel;
+            if (opt.joint == Polyline.Opt.PLJmiter) {
+                opt.joint = Polyline.Opt.PLJbevel;
             }
             return buffer.Render(opt);
         }
@@ -82,7 +82,7 @@ namespace Vaser
                     return new Polyline();
                 }
                 Polyline.Inopt inopt = new Polyline.Inopt();
-                inopt.segment_length = L;
+                inopt.segmentLength = L;
                 return new Polyline(P, C, W, opt, inopt);
             }
 

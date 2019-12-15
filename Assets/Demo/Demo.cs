@@ -9,14 +9,14 @@ public class Demo : MonoBehaviour {
         Polyline.Opt opt = new Polyline.Opt();
         opt.feather = false;
         opt.feathering = 15.0f;
-        opt.joint = Polyline.Opt.PLJ_round;
-        opt.cap = Polyline.Opt.PLC_round;
+        opt.joint = Polyline.Opt.PLJround;
+        opt.cap = Polyline.Opt.PLCround;
         opt.triangulation = false;
         {
             Camera cam = Camera.main;
             Vector3 a = cam.WorldToScreenPoint(new Vector3(0,0,0));
             Vector3 b = cam.WorldToScreenPoint(new Vector3(1,1,0));
-            opt.world_to_screen_ratio = Vector3.Distance(a,b) / new Vector3(1,1,0).magnitude;
+            opt.worldToScreenRatio = Vector3.Distance(a,b) / new Vector3(1,1,0).magnitude;
         }
 
         int mode = 2;
@@ -62,7 +62,7 @@ public class Demo : MonoBehaviour {
                     }
                 ),
                 new Polybezier.Opt {
-                    world_to_screen_ratio = opt.world_to_screen_ratio
+                    worldToScreenRatio = opt.worldToScreenRatio
                 }
             );
             polyline = polybezier.Render(opt);
