@@ -199,8 +199,6 @@ namespace Vaser
             public Color[] C = new Color[3]; //color
             public float[] W = new float[3]; //weight
 
-            public Vector2 capStart = new Vector2();
-            public Vector2 capEnd = new Vector2();
             public StPolyline[] SL = new StPolyline[3];
             public VertexArrayHolder vah = new VertexArrayHolder();
         }
@@ -579,12 +577,6 @@ namespace Vaser
             Vector2 P_0, P_1;
             P_0 = P[0];
             P_1 = P[1];
-            if (SL[0].djoint == Opt.PLCbutt || SL[0].djoint == Opt.PLCsquare) {
-                P_0 -= cap1;
-            }
-            if (SL[1].djoint == Opt.PLCbutt || SL[1].djoint == Opt.PLCsquare) {
-                P_1 -= cap2;
-            }
 
             Vector2 P1, P2, P3, P4; //core
             Vector2 P1c, P2c, P3c, P4c; //cap
@@ -712,18 +704,6 @@ namespace Vaser
                 } else {
                     T31 = T2;
                 }
-
-                SL[i].bR = cap1;
-
-                if (capFirst) {
-                    if (opt.cap == Opt.PLCsquare) {
-                        P[0] = P[0] - cap1 * (t + r);
-                    }
-                    Vec2Ext.Opposite(ref cap1);
-                    if (opt.feather && !opt.noFeatherAtCap) cap1 *= opt.feathering;
-                    SA.capStart = cap1;
-                }
-
                 SL[i].djoint = opt.cap;
                 SL[i].T = T2;
                 SL[i].t = t;
@@ -733,22 +713,6 @@ namespace Vaser
                 SL[i + 1].T1 = T31;
             }
 
-            if (capLast) {
-                int i = 2;
-
-                Vector2 cap0 = new Vector2(), cap2 = new Vector2();
-                float t = 0f, r = 0f, d = 0f;
-                MakeTrc(ref P[i - 1], ref P[i], ref cap0, ref cap0, ref cap2, weight[i], opt, ref r, ref t, ref d, true);
-                if (opt.cap == Opt.PLCsquare) {
-                    P[2] = P[2] + cap2 * (t + r);
-                }
-
-                SL[i].bR = cap2;
-
-                if (opt.feather && !opt.noFeatherAtCap) cap2 *= opt.feathering;
-                SA.capEnd = cap2;
-            }
-
             {
                 int i = 1;
 
@@ -756,10 +720,6 @@ namespace Vaser
                 Vector2 P_cur = P[i]; //current point
                 Vector2 P_nxt = P[i + 1]; //next point
                 Vector2 P_las = P[i - 1]; //last point
-                if (opt.cap == Opt.PLCbutt || opt.cap == Opt.PLCsquare) {
-                    P_nxt -= SA.capEnd;
-                    P_las -= SA.capStart;
-                }
 
                 {
                     Vector2 cap0 = new Vector2(), bR = new Vector2();
@@ -899,7 +859,7 @@ namespace Vaser
                 SL[i].degenT = false;
             }
 
-            AnchorLate(opt, P, C, SA.SL, SA.vah, SA.capStart, SA.capEnd);
+            AnchorLate(opt, P, C, SA.SL, SA.vah);
             if (capFirst) {
                 Segment(SA, opt, true, false, false);
             }
@@ -916,12 +876,9 @@ namespace Vaser
 
         private static void AnchorLate(
             Opt opt, Vector2[] P, Color[] C, StPolyline[] SL,
-            VertexArrayHolder tris, Vector2 cap1, Vector2 cap2)
+            VertexArrayHolder tris)
         {
             Vector2 P_0 = P[0], P_1 = P[1], P_2 = P[2];
-            if (SL[0].djoint == Opt.PLCbutt || SL[0].djoint == Opt.PLCsquare) P_0 -= cap1;
-            if (SL[2].djoint == Opt.PLCbutt || SL[2].djoint == Opt.PLCsquare) P_2 -= cap2;
-
             Vector2 P0, P1, P2, P3, P4, P5, P6, P7;
 
             P0 = P_1 + SL[1].vP;
