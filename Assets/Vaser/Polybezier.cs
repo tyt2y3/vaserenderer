@@ -47,13 +47,10 @@ namespace Vaser
 
         public Polyline Render(Polyline.Opt opt)
         {
-            if (opt.joint == Polyline.Opt.PLJmiter) {
-                opt.joint = Polyline.Opt.PLJbevel;
-            }
             return buffer.Render(opt);
         }
 
-        private class Buffer
+        public class Buffer
         {
             public List<Vector2> P;
             public List<Color> C;
@@ -86,10 +83,27 @@ namespace Vaser
                 return new Polyline(P, C, W, opt, inopt);
             }
 
+            public void AddPoint(float x, float y)
+            {
+                AddPoint(new Vector2(x, y));
+            }
+
             public void AddPoint(double x, double y)
             {
-                Vector2 V = new Vector2((float) x, (float) y);
+                AddPoint(new Vector2((float) x, (float) y));
+            }
+
+            public void AddPoint(Vector2 V)
+            {
                 AddVertex(V, new Color(0,0,0,1), 1);
+            }
+
+            public void AddPoints(List<Vector2> points)
+            {
+                for (int i=0; i<points.Count; i++)
+                {
+                    AddPoint(points[i]);
+                }
             }
 
             private bool AddVertex(Vector2 V, Color cc, float ww)

@@ -5,7 +5,7 @@ namespace Vaser
 {
     public class Polyline
     {
-        private VertexArrayHolder holder;
+        public VertexArrayHolder holder;
 
         public class Opt
         {
@@ -52,7 +52,7 @@ namespace Vaser
 
         public Polyline()
         {
-            // empty
+            holder = new VertexArrayHolder();
         }
 
         public Polyline(
@@ -158,6 +158,11 @@ namespace Vaser
             mesh.SetColors(holder.GetColors());
             mesh.SetTriangles(holder.GetTriangles(), 0);
             return mesh;
+        }
+
+        public void Append(Polyline polyline)
+        {
+            holder.Push(polyline.holder);
         }
 
         private struct StPolyline

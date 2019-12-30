@@ -60,6 +60,16 @@ namespace Vaser
             Push(P3, C3, fade3);
         }
 
+        public void Push4(
+            Vector2 P1, Vector2 P2, Vector2 P3, Vector2 P4, 
+            Color C1, Color C2, Color C3, Color C4,
+            float r1, float r2, float r3, float r4)
+        {
+            //interpret P0 to P3 as triangle strip
+            Push3(P1, P2, P3, C1, C2, C3, r1, r2, r3);
+            Push3(P3, P2, P4, C3, C2, C4, r3, r2, r4);
+        }
+
         public void Dot(Vector2 P, float size)
         {
             size /= 2;
