@@ -498,7 +498,7 @@ namespace Vaser
             Vector2 bR = new Vector2();
             float t = 0, r = 0;
 
-            bool varying_weight = !(weight[0] == weight[1]);
+            bool varying_weight = weight[0] != weight[1];
 
             Vector2 capStart = new Vector2(),
             capEnd = new Vector2();
@@ -582,18 +582,25 @@ namespace Vaser
             Vector2 P1c, P2c, P3c, P4c; //cap
             Vector2 P1r, P2r, P3r, P4r; //fade
 
+            float s0 = 1, s1 = 1;
+            if (SL[0].t < SL[1].t) {
+                s0 = (SL[0].t + SL[0].r) / (SL[1].t + SL[1].r);
+            }
+            if (SL[1].t < SL[0].t) {
+                s1 = (SL[1].t + SL[1].r) / (SL[0].t + SL[0].r);
+            }
             P1 = P_0 + SL[0].T + SL[0].R;
-            P1r = P1 - SL[0].R;
-            P1c = P1 + cap1;
+            P1r = P1 - SL[0].R * s0;
+            P1c = P1 + cap1 * s0;
             P2 = P_0 - SL[0].T - SL[0].R;
-            P2r = P2 + SL[0].R;
-            P2c = P2 + cap1;
+            P2r = P2 + SL[0].R * s0;
+            P2c = P2 + cap1 * s0;
             P3 = P_1 + SL[1].T + SL[1].R;
-            P3r = P3 - SL[1].R;
-            P3c = P3 + cap2;
+            P3r = P3 - SL[1].R * s1;
+            P3c = P3 + cap2 * s1;
             P4 = P_1 - SL[1].T - SL[1].R;
-            P4r = P4 + SL[1].R;
-            P4c = P4 + cap2;
+            P4r = P4 + SL[1].R * s1;
+            P4c = P4 + cap2 * s1;
             float rr = System.Math.Max((SL[0].t + SL[0].r) / SL[0].r, (SL[1].t + SL[1].r) / SL[1].r);
 
             //core
