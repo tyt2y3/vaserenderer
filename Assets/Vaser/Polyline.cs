@@ -240,10 +240,10 @@ namespace Vaser
             vcore.SetGlDrawMode(VertexArrayHolder.GL_TRIANGLE_STRIP);
 
             Color color(int I) {
-                return C[inopt != null && inopt.constColor ? from: I];
+                return C[inopt != null && inopt.constColor ? 0: I];
             }
             float weight(int I) {
-                return W[inopt != null && inopt.constWeight ? from: I];
+                return W[inopt != null && inopt.constWeight ? 0: I];
             }
             void poly_step(int i, Vector2 pp, float ww, Color cc) {
                 float t = 0, r = 0;
@@ -309,10 +309,10 @@ namespace Vaser
             bool joinLast = inopt != null && inopt.joinLast;
 
             Color color(int I) {
-                return C[inopt != null && inopt.constColor ? from: I];
+                return C[inopt != null && inopt.constColor ? 0: I];
             }
             float weight(int I) {
-                return W[inopt != null && inopt.constWeight ? from: I];
+                return W[inopt != null && inopt.constWeight ? 0: I];
             }
 
             Vector2 mid_l = new Vector2(), mid_n = new Vector2(); //the last and the next mid point
