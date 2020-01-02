@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 public class Demo : MonoBehaviour {
 
-    private int mode = 3;
+    private int mode = 1;
     private Polyline polyline = null;
     private Polyline.Opt opt = new Polyline.Opt();
     private GameObject myGameObject = null;
@@ -12,7 +12,7 @@ public class Demo : MonoBehaviour {
     private void Start() {
 
         opt.feather = false;
-        opt.feathering = 5f;
+        opt.feathering = 15f;
         opt.joint = Polyline.Opt.PLJround;
         opt.cap = Polyline.Opt.PLCround;
         opt.triangulation = false;
@@ -23,7 +23,64 @@ public class Demo : MonoBehaviour {
             opt.worldToScreenRatio = Vector3.Distance(a,b) / new Vector3(1,1,0).magnitude;
         }
 
-        if (mode == 1) {
+        VertexArrayHolder holder = null;
+        if (mode == 0) {
+            holder = new VertexArrayHolder();
+            holder.Push3(
+                new Vector2(-2, 0.5f),
+                new Vector2(-1, 0.5f),
+                new Vector2(-2, -0.5f),
+                Color.red,
+                Color.green,
+                Color.blue,
+                5, 0, 5
+            );
+            holder.Push3(
+                new Vector2(-2, -0.5f),
+                new Vector2(-1, -0.5f),
+                new Vector2(-2, -0.75f),
+                Color.red,
+                Color.green,
+                Color.blue,
+                1.25f, 0, 5
+            );
+            holder.Push3(
+                new Vector2(-0.6f, 0.5f),
+                new Vector2(-0.1f, 0.5f),
+                new Vector2(-0.6f, -0.5f),
+                Color.red,
+                Color.green,
+                Color.blue,
+                5, 0, 2.5f
+            );
+            holder.Push3(
+                new Vector2(-0.6f, -0.5f),
+                new Vector2(-0.1f, -0.5f),
+                new Vector2(-0.6f, -0.75f),
+                Color.red,
+                Color.green,
+                Color.blue,
+                1.25f, 0, 2.5f
+            );
+            holder.Push3(
+                new Vector2(0.25f, 0.5f),
+                new Vector2(2.25f, 0.5f),
+                new Vector2(0.25f, -0.5f),
+                Color.red,
+                Color.green,
+                Color.blue,
+                5, 0, 10
+            );
+            holder.Push3(
+                new Vector2(0.25f, -0.5f),
+                new Vector2(2f, -0.5f),
+                new Vector2(0.25f, -0.75f),
+                Color.red,
+                Color.green,
+                Color.blue,
+                1.25f, 0, 10
+            );
+        } else if (mode == 1) {
             polyline = new Polyline(
                 new List<Vector2> {
                     new Vector2(0, .75f),
@@ -75,6 +132,15 @@ public class Demo : MonoBehaviour {
 
         if (polyline != null) {
             Mesh mesh = polyline.GetMesh();
+            myGameObject.GetComponent<MeshFilter>().mesh = mesh;
+        }
+
+        if (mode == 0) {
+            Mesh mesh = new Mesh();
+            mesh.SetVertices(holder.GetVertices());
+            mesh.SetUVs(0, holder.GetUVs());
+            mesh.SetColors(holder.GetColors());
+            mesh.SetTriangles(holder.GetTriangles(), 0);
             myGameObject.GetComponent<MeshFilter>().mesh = mesh;
         }
     }

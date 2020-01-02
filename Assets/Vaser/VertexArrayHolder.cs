@@ -167,16 +167,16 @@ namespace Vaser
             List<Vector4> uvs = new List<Vector4>();
             Vector4[] UVS = new Vector4[]
             {
-                new Vector4(0, 0, 1, 0),
-                new Vector4(1, 0, 1, 0),
-                new Vector4(1, 1, 1, 0),
-                new Vector4(0, 1, 1, 0),
-                new Vector4(-1, 1, 1, 0),
-                new Vector4(-1, 0, 1, 0),
-                new Vector4(-1, -1, 1, 0),
-                new Vector4(0, -1, 1, 0),
-                new Vector4(1, -1, 1, 0),
-                new Vector4(-1, 0, 1, 0),
+                new Vector4(0, 0, 0, 0),
+                new Vector4(1, 0, 0, 0),
+                new Vector4(1, 1, 0, 0),
+                new Vector4(0, 1, 0, 0),
+                new Vector4(-1, 1, 0, 0),
+                new Vector4(-1, 0, 0, 0),
+                new Vector4(-1, -1, 0, 0),
+                new Vector4(0, -1, 0, 0),
+                new Vector4(1, -1, 0, 0),
+                new Vector4(-1, 0, 0, 0),
             };
 
             if (glmode == GL_TRIANGLES)
@@ -188,18 +188,18 @@ namespace Vaser
                     if (fade[i-1] > 0) count++;
                     if (fade[i-0] > 0) count++;
                     if (count == 0) {
-                        addUV(0, 1);
-                        addUV(0, 1);
-                        addUV(0, 1);
+                        addUV(0, 1, 1);
+                        addUV(0, 1, 1);
+                        addUV(0, 1, 1);
                     } else if (count == 3) {
-                        addUV(1, fade[i-2]);
-                        addUV(5, fade[i-1]);
-                        addUV(3, fade[i-0]);
+                        addUV(1, fade[i-2], fade[i-2]);
+                        addUV(5, fade[i-1], fade[i-1]);
+                        addUV(3, fade[i-0], fade[i-0]);
                     } else if (count == 2) {
-                        float fadeU = 0;
-                        float fadeV = 0;
+                        float fadeX = 0, fadeY = 0;
                         for (int j=0; j<3; j++)
                         {
+                            float fadeU = 0, fadeV = 0;
                             if (j == 0) {
                                 fadeU = fade[i-2];
                                 fadeV = fade[i-0];
@@ -207,18 +207,36 @@ namespace Vaser
                                 fadeU = fade[i-1];
                                 fadeV = fade[i-2];
                             } else if (j == 2) {
-                                fadeV = fade[i-1];
                                 fadeU = fade[i-0];
+                                fadeV = fade[i-1];
+                            }
+                            if (fadeU > 0 && fadeV > 0) {
+                                fadeX = fadeV;
+                                fadeY = fadeU;
+                            }
+                        }
+                        for (int j=0; j<3; j++)
+                        {
+                            float fadeU = 0, fadeV = 0;
+                            if (j == 0) {
+                                fadeU = fade[i-2];
+                                fadeV = fade[i-0];
+                            } else if (j == 1) {
+                                fadeU = fade[i-1];
+                                fadeV = fade[i-2];
+                            } else if (j == 2) {
+                                fadeU = fade[i-0];
+                                fadeV = fade[i-1];
                             }
                             if (fadeU > 0 && fadeV > 0) {
                                 //Debug.Log("fade both");
-                                addUV(8, fadeU);
+                                addUV(8, fadeX, fadeY);
                             } else if (fadeU > 0) {
                                 //Debug.Log("fadeU");
-                                addUV(2, fadeU);
+                                addUV(2, fadeX, fadeY);
                             } else if (fadeV > 0) {
                                 //Debug.Log("fadeV");
-                                addUV(6, fadeV);
+                                addUV(6, fadeX, fadeY);
                             }
                         }
                     } else if (count == 1 &&
@@ -240,11 +258,11 @@ namespace Vaser
                             if (fadeU > 0 || fadeV > 0) {
                                 //Debug.Log("fade side");
                                 float fader = fadeU > 0 ? fadeU : fadeV;
-                                addUV(1, fader);
+                                addUV(1, fader, fader);
                             } else {
                                 //Debug.Log("corner fade");
                                 float fader = fade[i-2] > 0 ? fade[i-2] : fade[i-1] > 0 ? fade[i-1] : fade[i-0];
-                                addUV(5, fader);
+                                addUV(5, fader, fader);
                             }
                         }
                     } else if (count == 1) {
@@ -266,11 +284,11 @@ namespace Vaser
                             if (fadeU > 0 || fadeV > 0) {
                                 //Debug.Log("fan fade");
                                 float fader = fadeU > 0 ? fadeU : fadeV;
-                                addUV(9, fader);
+                                addUV(9, fader, fader);
                             } else {
                                 //Debug.Log("zero fade");
                                 float fader = fade[i-2] > 0 ? fade[i-2] : fade[i-1] > 0 ? fade[i-1] : fade[i-0];
-                                addUV(0, fader);
+                                addUV(0, fader, fader);
                             }
                         }
                     }
@@ -278,13 +296,9 @@ namespace Vaser
             }
             return uvs;
 
-            void addUV(int i, float r)
+            void addUV(int i, float rx, float ry)
             {
-                if (UVS[i].z != r) {
-                    UVS[i] = new Vector4(UVS[i].x, UVS[i].y, UVS[i].z, UVS[i].w);
-                    UVS[i].z = r;
-                }
-                uvs.Add(UVS[i]);
+                uvs.Add(new Vector4(UVS[i].x, UVS[i].y, rx, ry));
             }
         }
 

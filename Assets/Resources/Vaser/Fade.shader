@@ -36,9 +36,9 @@
 
             fixed4 frag (v2f i) : SV_Target {
                 fixed4 col = i.color;
-                float fact = max(abs(i.uv.x), abs(i.uv.y));
-                fact = min((1 - fact) * i.uv.z, 1);
-                col.a *= fact;
+                float factx = min((1 - abs(i.uv.x)) * i.uv.z, 1);
+                float facty = min((1 - abs(i.uv.y)) * i.uv.w, 1);
+                col.a *= min(factx, facty);
                 return col;
             }
             ENDCG

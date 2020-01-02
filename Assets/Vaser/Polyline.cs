@@ -500,8 +500,7 @@ namespace Vaser
 
             bool varying_weight = weight[0] != weight[1];
 
-            Vector2 capStart = new Vector2(),
-            capEnd = new Vector2();
+            Vector2 capStart = new Vector2(), capEnd = new Vector2();
             StPolyline[] SL = new StPolyline[2];
 
             /*for (int i = 0; i < 2; i++) {
@@ -519,7 +518,7 @@ namespace Vaser
 
                 if (capFirst) {
                     if (opt.cap == Opt.PLCsquare) {
-                        P[0] = P[0] - (bR * (t + r));
+                        P[0] -= bR * (t + r);
                     }
                     capStart = bR;
                     Vec2Ext.Opposite(ref capStart);
@@ -602,21 +601,26 @@ namespace Vaser
             P4r = P4 + SL[1].R * s1;
             P4c = P4 + cap2 * s1;
             float rr = System.Math.Max((SL[0].t + SL[0].r) / SL[0].r, (SL[1].t + SL[1].r) / SL[1].r);
+            float rc = (P_1 - P_0).Length() / System.Math.Max(SL[0].t + SL[0].r, SL[1].t + SL[1].r);
 
             //core
             if (core) {
-                PushQuad(
-                    tris,
-                    ref P1, ref P2, ref P3, ref P4,
-                    ref C[0], ref C[0], ref C[1], ref C[1],
-                    rr, 0, 0, rr);
+                float rc0 = 0, rc1 = 0;
+                if (SL[0].djoint == Opt.PLCbutt && !cap1.IsZero()) {
+                    rc0 = rc;
+                }
+                if (SL[1].djoint == Opt.PLCbutt && !cap2.IsZero()) {
+                    rc1 = rc;
+                }
+                tris.Push3(P1, P3, P2, C[0], C[1], C[0], rr,  0, rc0);
+                tris.Push3(P2, P3, P4, C[0], C[1], C[1], 0, rc1,  rr);
             }
 
             //caps
             for (int j = 0; j < 2; j++) {
                 VertexArrayHolder cap = new VertexArrayHolder();
                 cap.SetGlDrawMode(VertexArrayHolder.GL_TRIANGLE_STRIP);
-                Vector2 cur_cap = j == 0 ? cap1: cap2;
+                Vector2 cur_cap = j == 0 ? cap1 : cap2;
                 if (cur_cap.IsZero()) {
                     continue;
                 }
@@ -628,11 +632,11 @@ namespace Vaser
 
                     VectorsToArc(
                         cap, O, C[j], C[j], SL[j].T + SL[j].R, -SL[j].T - SL[j].R,
-                        dangle, SL[j].t + SL[j].r, 0.0f, false, O, j == 0 ? cap1: cap2, rr, false);
+                        dangle, SL[j].t + SL[j].r, 0.0f, false, O, j == 0 ? cap1 : cap2, rr, false);
                     //cap.Push(O-SL[j].T-SL[j].R, C[j]);
                     //cap.Push(O, C[j]);
                     tris.Push(cap);
-                } else if (SL[j].djoint != Opt.PLCnone) {
+                } else if (SL[j].djoint == Opt.PLCrect || SL[j].djoint == Opt.PLCsquare) {
                     //rectangular cap
                     Vector2 Pj, Pjr, Pjc, Pk, Pkr, Pkc;
                     if (j == 0) {
@@ -678,9 +682,18 @@ namespace Vaser
             StPolyline[] SL = SA.SL;
             if (Vec2Ext.SignedArea(P[0], P[1], P[2]) > 0) {
                 // rectify clockwise
-                P = new Vector2[3] { P[2], P[1], P[0] };
-                C = new Color[3] { C[2], C[1], C[0] };
-                weight = new float[3] { weight[2], weight[1], weight[0] };
+                Vector2 P0 = P[0];
+                P[0] = P[2];
+                P[2] = P0;
+                Color C0 = C[0];
+                C[0] = C[2];
+                C[2] = C0;
+                float weight0 = weight[0];
+                weight[0] = weight[2];
+                weight[2] = weight0;
+                bool capCap = capFirst;
+                capFirst = capLast;
+                capLast = capCap;
             }
 
             //const float critical_angle=11.6538;
@@ -866,11 +879,11 @@ namespace Vaser
                 SL[i].degenT = false;
             }
 
-            AnchorLate(opt, P, C, SA.SL, SA.vah);
-            if (capFirst) {
+            AnchorLate(opt, P, C, SA.SL, SA.vah, capFirst, capLast);
+            if (capFirst && SL[0].djoint != Opt.PLCbutt && SL[0].djoint != Opt.PLCnone) {
                 Segment(SA, opt, true, false, false);
             }
-            if (capLast) {
+            if (capLast && SL[1].djoint != Opt.PLCbutt && SL[1].djoint != Opt.PLCnone) {
                 SA.P[0] = SA.P[1];
                 SA.P[1] = SA.P[2];
                 SA.C[0] = SA.C[1];
@@ -883,7 +896,7 @@ namespace Vaser
 
         private static void AnchorLate(
             Opt opt, Vector2[] P, Color[] C, StPolyline[] SL,
-            VertexArrayHolder tris)
+            VertexArrayHolder tris, bool capFirst, bool capLast)
         {
             Vector2 P_0 = P[0], P_1 = P[1], P_2 = P[2];
             Vector2 P0, P1, P2, P3, P4, P5, P6, P7;
@@ -901,6 +914,13 @@ namespace Vaser
 
             int normal_line_core_joint = 1; //0:dont draw, 1:draw, 2:outer only
             float rr = SL[1].t / SL[1].r;
+            float rc1 = 0, rc2 = 0;
+            if (capFirst && SL[0].djoint == Opt.PLCbutt) {
+                rc1 = (P_1 - P_0).Length() / (SL[0].t + SL[0].r);
+            }
+            if (capLast && SL[2].djoint == Opt.PLCbutt) {
+                rc2 = (P_2 - P_1).Length() / (SL[2].t + SL[2].r);
+            }
 
             if (SL[1].degenT) {
                 P1 = SL[1].PT;
@@ -912,14 +932,13 @@ namespace Vaser
                 } else {
                     tris.Push3(P1, P6, P7, C[1], C[2], C[2], 0, 0, rr);
                 }
-            }
-            else {
+            } else {
                 // normal first segment
-                tris.Push3(P2, P4, P3, C[1], C[0], C[0], 0, 0, rr);
+                tris.Push3(P2, P4, P3, C[1], C[0], C[0], 0, rc1, rr);
                 tris.Push3(P4, P2, P1, C[0], C[1], C[1], 0, 0, rr);
                 // normal last segment
                 tris.Push3(P5, P7, P1, C[1], C[2], C[1], 0, rr, 0);
-                tris.Push3(P7, P5, P6, C[2], C[1], C[2], 0, rr, 0);
+                tris.Push3(P7, P5, P6, C[2], C[1], C[2], 0, rr, rc2);
             }
 
             if (normal_line_core_joint != 0) {
@@ -1076,17 +1095,6 @@ namespace Vaser
                 dangle = 4.2f / sum;
             }
             return dangle;
-        }
-
-        private static void PushQuad(
-            VertexArrayHolder tris,
-            ref Vector2 P1, ref Vector2 P2, ref Vector2 P3, ref Vector2 P4, 
-            ref Color C1, ref Color C2, ref Color C3, ref Color C4,
-            float r1, float r2, float r3, float r4)
-        {
-            //interpret P0 to P3 as triangle strip
-            tris.Push3(P1, P3, P2, C1, C3, C2, r1, r3, r2);
-            tris.Push3(P2, P3, P4, C2, C3, C4, r2, r3, r4);
         }
     }
 }
