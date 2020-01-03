@@ -916,10 +916,10 @@ namespace Vaser
             float rr = SL[1].t / SL[1].r;
             float rc1 = 0, rc2 = 0;
             if (capFirst && SL[0].djoint == Opt.PLCbutt) {
-                rc1 = (P_1 - P_0).Length() / (SL[0].t + SL[0].r);
+                rc1 = (P_1 - P_0).Length() / (SL[0].r) / 2;
             }
             if (capLast && SL[2].djoint == Opt.PLCbutt) {
-                rc2 = (P_2 - P_1).Length() / (SL[2].t + SL[2].r);
+                rc2 = (P_2 - P_1).Length() / (SL[2].r) / 2;
             }
 
             if (SL[1].degenT) {
