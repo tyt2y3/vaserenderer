@@ -1,4 +1,4 @@
-> This project was started nearly 10 years ago. While the original idea was neat, the implementation was perhaps obscure and archaic. It is now being reimplemented in C# for Unity under [tyt2y3/vaser-unity](https://github.com/tyt2y3/vaser-unity).
+> This project was started 10 years ago. While the original idea was neat, the implementation was perhaps obscure. It is now being reimplemented in C# for Unity under [tyt2y3/vaser-unity](https://github.com/tyt2y3/vaser-unity).
 
 <body>
 	<div class='vaser_wrap'>
@@ -53,16 +53,6 @@ same as left without wireframe.
 <h3>Performant</h3>
 <div style='position:relative; overflow:hidden; width:300px; height:250px; float:left;'><img style='position:relative; top:-20px; left:-50px;' src='docs/sample_images/polyline_5.png' /></div>
 <p>VASEr is for real time rendering. Tessellation is done on CPU and the triangles are then sent off to GPU for rasterization. VASEr is equally fast regardless of the thickness of lines and the rendering resolution.</p>
-<p>Can tessellation be accelerated by GPU? Probably, but I have no plan to do so. The performance enhancement strategy of VASEr is adaptation, that means doing expensive joint processing only when necessary and unperceivablely switch to approximation for thin lines and curves. The decision requires some global information and result in lots of branching, which makes it harder to write GPU programs. But after all, correctness is the first priority and performance is the last.</p>
-
-<h2>"Next generation" 2d graphics?</h2>
-<p>Q: Who needs "Per vertex coloring and weighting", "Linear gradient along curve" or "Feathering for brush like effects" in vector graphics? A: Same answer as "who needs typesetting and beautiful fonts on their computers?".</p>
-<p>Q: These effects can be achieved by vector graphics package XXX using tool AAA then effect BBB, so who needs VASE renderer? A: Arguably true. But the fundamental change is <b>making vertex a three dimensional entity</b> (position, color, weight), and to <b>supercharge the intrinsic properties of strokes</b>. The idea is, it should be <i>natural</i> to apply colors and thickness to a stroke.</p>
-
-<h2>Status</h2>
-<p>VASEr is production ready for conventional use. The unconventional features are largely usable for normal circumstances, but may have defects at extreme cases. In particular, varying thickness is undesirable at acute angles and when weight difference is large. So it is not bullet proof yet. The tessellation code is tediously written for each point for each triangle for each circumstance, because a general outsetting and tessellating algorithm is doomed to be slow.</p>
-<p>Currently VASEr is only a programming library and is not used in any vector graphics tool. I do have a plan (a plan only) to develop associated tools.</p>
-<p>In any case, sending me any form of encouragement (e.g. great work, thank you, donation) will help.</p>
 
 <h2>Documentation</h2>
 <div class='textblock'>
@@ -72,6 +62,11 @@ same as left without wireframe.
 	<a href='http://artgrammer.blogspot.com/2011/07/drawing-polylines-by-tessellation.html' target='_blank'>Drawing polylines by tessellation.</a><br>
 	<a href='http://artgrammer.blogspot.hk/2011/05/drawing-nearly-perfect-2d-line-segments.html'>Drawing nearly perfect 2D line segments in OpenGL</a>
 </div>
+
+<h2>Related Work</h2>
+<ul>
+<li>If you only need uniform color & width and only wanted a clean mesh, you can try out <a href="https://github.com/CrushedPixel/Polyline2D">Polyline2D</a>.</li>
+</ul>
 
 <h2>License</h2>
 <p>VASE renderer version 0.42 (VASEr 0.42) is licensed under The 3-Clause BSD License.</p>
