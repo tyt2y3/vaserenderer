@@ -420,6 +420,69 @@ namespace Vaser
             }
         }
 
+        private static void DrawDigit(VertexArrayHolder holder, Vector2 pp, float scale, int digit)
+        {
+            Opt opt = new Opt();
+            opt.cap = Opt.PLCnone;
+            opt.joint = Opt.PLJbevel;
+            opt.worldToScreenRatio = scale;
+            List<Vector2> P;
+            float size = 5 / scale;
+            float halfSize = size / 2;
+            switch (digit)
+            {
+                case 0:
+                    P = new List<Vector2> {
+                        new Vector2(halfSize, size) + pp,
+                        new Vector2(halfSize, -size) + pp,
+                        new Vector2(-halfSize, -size) + pp,
+                        new Vector2(-halfSize, size) + pp,
+                        new Vector2(halfSize, size) + pp,
+                        new Vector2(-halfSize, -size) + pp,
+                    };
+                break;
+                case 1:
+                    P = new List<Vector2> {
+                        new Vector2(-halfSize, 0) + pp,
+                        new Vector2(0, size) + pp,
+                        new Vector2(0, -size) + pp,
+                    };
+                break;
+                case 2:
+                    P = new List<Vector2> {
+                        new Vector2(-halfSize, size) + pp,
+                        new Vector2(halfSize, size) + pp,
+                        new Vector2(halfSize, 0) + pp,
+                        new Vector2(-halfSize, 0) + pp,
+                        new Vector2(-halfSize, -size) + pp,
+                        new Vector2(halfSize, -size) + pp,
+                    };
+                break;
+                case 3:
+                    P = new List<Vector2> {
+                        new Vector2(-halfSize, size) + pp,
+                        new Vector2(halfSize, size) + pp,
+                        new Vector2(halfSize, 0) + pp,
+                        new Vector2(-halfSize, 0) + pp,
+                        new Vector2(halfSize, 0) + pp,
+                        new Vector2(halfSize, -size) + pp,
+                        new Vector2(-halfSize, -size) + pp,
+                    };
+                break;
+                case 4:
+                    P = new List<Vector2> {
+                        new Vector2(halfSize, -size) + pp,
+                        new Vector2(halfSize, size) + pp,
+                        new Vector2(-halfSize, 0) + pp,
+                        new Vector2(halfSize, 0) + pp,
+                    };
+                break;
+                default: return;
+            }
+            Polyline polyline = new Polyline(P, Color.red, 1 / scale, opt);
+            holder.Push(polyline.holder);
+        }
+
         private static void DetermineTr(float w, ref float t, ref float R, float scale)
         {
             //efficiency: can cache one set of w,t,R values
