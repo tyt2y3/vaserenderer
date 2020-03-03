@@ -182,7 +182,6 @@ namespace Vaser
             public bool degenR; //fade degenerated
             public bool preFull; //draw the preceding segment in full
             public Vector2 PT;
-            public float pt; //parameter at intersection
 
             public char djoint; //determined joint
             // e.g. originally a joint is PLJmiter. but it is smaller than critical angle, should then set djoint to PLJbevel
@@ -809,7 +808,7 @@ namespace Vaser
                             }
                         } else {
                             intersection_fail = true;
-                            Debug.Log(System.String.Format("intersection failed: cos(angle)={0}, angle={1} (degree)", cos_tho, System.Math.Acos(cos_tho) * 180 / 3.14159));
+                            //Debug.Log(System.String.Format("intersection failed: cos(angle)={0}, angle={1} (degree)", cos_tho, System.Math.Acos(cos_tho) * 180 / 3.14159));
                         }
                     }
 
@@ -832,18 +831,14 @@ namespace Vaser
 
                     //make intersections
                     Vector2 PT1 = new Vector2(), PT2 = new Vector2();
-                    float pt1 = 0f, pt2 = 0f;
                     int result1t, result2t;
                     {
-                        float[] pts = new float[2];
                         result1t = Vec2Ext.Intersect(
-                        P_nxt - T31, P_nxt + T31, P_las + T1, P_cur + T21, //knife1_a
-                        ref PT1, pts); //core
-                        pt1 = pts[1];
+                            P_nxt - T31, P_nxt + T31, P_las + T1, P_cur + T21, //knife1_a
+                            ref PT1); //core
                         result2t = Vec2Ext.Intersect(
-                        P_las - T1, P_las + T1, P_nxt + T31, P_cur + T2, //knife2_a
-                        ref PT2, pts);
-                        pt2 = pts[1];
+                            P_las - T1, P_las + T1, P_nxt + T31, P_cur + T2, //knife2_a
+                            ref PT2);
                     }
                     bool is_result1t = result1t == 1;
                     bool is_result2t = result2t == 1;
@@ -852,7 +847,25 @@ namespace Vaser
                         SL[i].degenT = true;
                         SL[i].preFull = is_result1t;
                         SL[i].PT = is_result1t ? PT1: PT2;
-                        SL[i].pt = is_result1t ? pt1: pt2;
+                    } else {
+                        int result4;
+                        result4 = Vec2Ext.Intersect(
+                            P_nxt - T31, P_nxt + T31, P_las, P_cur,
+                            ref PT1);
+                        if (result4 == 1) {
+                            SL[i].degenT = true;
+                            SL[i].preFull = true;
+                            SL[i].PT = PT1;
+                        } else {
+                            result4 = Vec2Ext.Intersect(
+                                P_las - T1, P_las + T1, P_cur, P_nxt,
+                                ref PT2);
+                            if (result4 == 1) {
+                                SL[i].degenT = true;
+                                SL[i].preFull = false;
+                                SL[i].PT = PT2;
+                            }
+                        }
                     }
 
                     if (d180_degree | result3 == 0) { //to solve visual bugs 3 and 1.1
