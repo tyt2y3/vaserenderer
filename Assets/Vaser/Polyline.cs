@@ -122,8 +122,8 @@ namespace Vaser
                 float cos_c = (float) System.Math.Cos(25 * m_pi / 180);
                 float weight = W[inopt.constWeight ? 0 : i];
                 bool approx = false;
-                if ((weight < 7 && costho > cos_a) || (costho > cos_b) || //when the angle difference at an anchor is smaller than a critical degree, do polyline approximation
-                (len < weight && costho > cos_c)) { //when vector length is smaller than weight, do approximation
+                if ((weight * opt.worldToScreenRatio < 7 && costho > cos_a) || (costho > cos_b) || //when the angle difference at an anchor is smaller than a critical degree, do polyline approximation
+                    (len < weight && costho > cos_c)) { //when vector length is smaller than weight, do approximation
                     approx = true;
                 }
                 if (approx && !on) {
@@ -775,7 +775,7 @@ namespace Vaser
                     Vec2Ext.Normalize(ref ln1);
                     Vec2Ext.Normalize(ref ln2);
                     Vec2Ext.Dot(ln1, ln2, ref V);
-                    float cos_tho = V.x - V.y;
+                    float cos_tho = V.x + V.y;
                     bool zero_degree = System.Math.Abs(cos_tho - 1.0f) < 0.0000001f;
                     bool d180_degree = cos_tho < -1.0f + 0.0001f;
                     bool intersection_fail = false;
