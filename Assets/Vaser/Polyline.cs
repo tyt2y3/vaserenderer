@@ -83,12 +83,6 @@ namespace Vaser
                 inopt = new Inopt();
             }
 
-            /* if( opt.fallback)
-            {
-                backend::polyline(P,C[0],W[0],length,0);
-                return;
-            } */
-
             if (opt.cap >= 10) {
                 char dec = (char)((int) opt.cap - ((int) opt.cap % 10));
                 if (dec == Opt.PLCfirst || dec == Opt.PLCnone) {
@@ -128,8 +122,10 @@ namespace Vaser
                 }
                 if (approx && !on) {
                     A = i;
-                    if (A == 1) A = 0;
                     on = true;
+                    if (A == 1) {
+                        A = 0;
+                    }
                     if (A > 1) {
                         PolylineRange(P, C, W, opt, inopt, B, A, false);
                     }
@@ -238,6 +234,8 @@ namespace Vaser
             }
             bool capFirst = !(inopt != null && inopt.noCapFirst);
             bool capLast = !(inopt != null && inopt.noCapLast);
+            bool joinFirst = inopt != null && inopt.joinFirst;
+            bool joinLast = inopt != null && inopt.joinLast;
 
             VertexArrayHolder vcore = new VertexArrayHolder(); //curve core
             vcore.SetGlDrawMode(VertexArrayHolder.GL_TRIANGLE_STRIP);
@@ -250,7 +248,7 @@ namespace Vaser
             }
             void poly_step(int i, Vector2 pp, float ww, Color cc) {
                 float t = 0, r = 0;
-                DetermineTr(weight(i), ref t, ref r, opt.worldToScreenRatio);
+                DetermineTr(ww, ref t, ref r, opt.worldToScreenRatio);
                 if (opt.feather && !opt.noFeatherAtCore) {
                     r *= opt.feathering;
                 }
@@ -259,8 +257,8 @@ namespace Vaser
                 Vec2Ext.Perpen(ref V);
                 Vec2Ext.Normalize(ref V);
                 V *= (t + r);
-                vcore.Push(pp - V, color(i), rr);
-                vcore.Push(pp + V, color(i), 0);
+                vcore.Push(pp - V, cc, rr);
+                vcore.Push(pp + V, cc, 0);
             }
 
             for (int i = from + 1; i < to; i++) {
@@ -274,7 +272,7 @@ namespace Vaser
 
             StAnchor SA = new StAnchor();
             {
-                PolyPointInter(P, C, W, inopt, ref P_fir, ref C_fir, ref W_fir, from, inopt != null && inopt.joinFirst ? 0.5f: 0.0f);
+                PolyPointInter(P, C, W, inopt, ref P_fir, ref C_fir, ref W_fir, from, joinFirst ? 0.5f : 0.0f);
                 SA.P[0] = P_fir;
                 SA.P[1] = P[from + 1];
                 SA.C[0] = C_fir;
@@ -283,7 +281,7 @@ namespace Vaser
                 SA.W[1] = weight(from + 1);
                 Segment(SA, opt, capFirst, false, true);
             }
-            if (!(inopt != null && inopt.joinLast)) {
+            if (!joinLast) {
                 SA.P[0] = P_las;
                 SA.P[1] = P[to];
                 SA.C[0] = C_las;
@@ -323,7 +321,7 @@ namespace Vaser
             float w_l = 0, w_n = 0;
 
             //init for the first anchor
-            PolyPointInter(P, C, W, inopt, ref mid_l, ref c_l, ref w_l, from, joinFirst ? 0.5f: 0);
+            PolyPointInter(P, C, W, inopt, ref mid_l, ref c_l, ref w_l, from, joinFirst ? 0.5f : 0);
 
             StAnchor SA = new StAnchor();
             if (to - from + 1 == 2) {
