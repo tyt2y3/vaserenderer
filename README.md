@@ -3,7 +3,7 @@
 Vaser Unity is a continuation of [VASE renderer](https://github.com/tyt2y3/vaserenderer), reimplementing the original C++ algorithm in C# while taking advantage of fragment shader to further reduce triangle count.
 
 ![Screenshot](Docs/Screenshot%20at%202019-12-11%2001-11-10.png)
-![Screenshot](Docs/Screenshot%20at%202019-12-15%2003-57-00.png)
+![Screenshot](Docs/Screenshot%20at%202019-12-15%2003-31-00.png)
 ![Screenshot](Docs/Screenshot%20at%202019-12-30%2017-36-00.png)
 
 ## Features
