@@ -50,18 +50,10 @@ same as left without wireframe.
 <p>There is small difference, but it is more a matter of taste than correctness. In terms of clarity VASEr is like between Cairo and AGG, and VASEr is the most crisp among the three. VASEr even do pixel alignment to 1px completely horizontal or vertical lines.</p>
 <p>The flaw is, because the outsetting distance is resolution dependent, while the triangulation is unaffected under rotational transformation, fidelity will be lost under scale and sheer.</p>
 
-<h3>Performant</h3>
-<div style='position:relative; overflow:hidden; width:300px; height:250px; float:left;'><img style='position:relative; top:-20px; left:-50px;' src='docs/sample_images/polyline_5.png' /></div>
-<p>VASEr is for real time rendering. Tessellation is done on CPU and the triangles are then sent off to GPU for rasterization. VASEr is equally fast regardless of the thickness of lines and the rendering resolution.</p>
+<h2>Articles</h2>
 
-<h2>Documentation</h2>
-<div class='textblock'>
-	<a href='docs/getting_started.html'>getting started</a><br>
-	<a href='docs/API.html'>API reference</a><br>
-	Articles<br>
-	<a href='http://artgrammer.blogspot.com/2011/07/drawing-polylines-by-tessellation.html' target='_blank'>Drawing polylines by tessellation.</a><br>
-	<a href='http://artgrammer.blogspot.hk/2011/05/drawing-nearly-perfect-2d-line-segments.html'>Drawing nearly perfect 2D line segments in OpenGL</a>
-</div>
++ <a href='http://artgrammer.blogspot.com/2011/07/drawing-polylines-by-tessellation.html' target='_blank'>Drawing polylines by tessellation.</a><br>
++ <a href='http://artgrammer.blogspot.hk/2011/05/drawing-nearly-perfect-2d-line-segments.html'>Drawing nearly perfect 2D line segments in OpenGL</a>
 
 <h2>Related Work</h2>
 <ul>
