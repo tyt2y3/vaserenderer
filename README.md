@@ -1,4 +1,4 @@
-> This project was started 10 years ago. While the original idea was neat, the implementation was perhaps obscure. It is now being reimplemented in C# for Unity under [tyt2y3/vaser-unity](https://github.com/tyt2y3/vaser-unity).
+> This project was started many, many years ago. The C++ implementation is a pre-OpenGL 3 relic. The C# implementation is more "modern" and uses fragment shader, which is better.
 
 <body>
 	<div class='vaser_wrap'>
@@ -67,19 +67,6 @@ same as left without wireframe.
 <ul>
 <li>If you only need uniform color & width and only wanted a clean mesh, you can try out <a href="https://github.com/CrushedPixel/Polyline2D">Polyline2D</a>.</li>
 </ul>
-
-<h2>License</h2>
-<p>VASE renderer version 0.42 (VASEr 0.42) is licensed under The 3-Clause BSD License.</p>
-<p>Copyright (2011-2016) Tsang Hao Fung (Chris Tsang) tyt2y3@gmail.com</p>
-<p>Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:</p>
-
-<p>1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.</p>
-
-<p>2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.</p>
-
-<p>3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.</p>
-
-<p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>
 
 <p>Bezier curve subdivision code is extracted from Anti-Grain Geometry V2.4 Copyright 2002-2005 Maxim Shemanarev (McSeem) [Modified BSD License]</p>
 
