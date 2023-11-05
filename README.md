@@ -60,6 +60,8 @@ same as left without wireframe.
 <li>If you only need uniform color & width and only wanted a clean mesh, you can try out <a href="https://github.com/CrushedPixel/Polyline2D">Polyline2D</a>.</li>
 </ul>
 
-<p>Bezier curve subdivision code is extracted from Anti-Grain Geometry V2.4 Copyright 2002-2005 Maxim Shemanarev (McSeem) [Modified BSD License]</p>
+<h2>Acknowledgement</h2>
+<p>Bezier curve subdivision code is extracted from Anti-Grain Geometry V2.4 by Maxim Shemanarev (McSeem).</p>
+<p>The open-source graphics library AGG inspired me a lot during my teenage.</p>
 
 </body>
