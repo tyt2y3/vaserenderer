@@ -1,6 +1,3 @@
-// this code is isolated from AGG,
-// for cubic bezier curve rendering using recursive subdivision
-
 //-----------------------------------------------------------------------
 // The Anti-Grain Geometry Project
 // A high quality rendering engine for C++
